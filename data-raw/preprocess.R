@@ -82,8 +82,8 @@ all_cds@assayData$exprs <- sexpr
 rownames(fData(all_cds)) <- fData(all_cds)$gene_short_name
 sexpr_nmlog <- all_cds@auxOrderingData$normalize_expr_data
 rownames(sexpr_nmlog) <- fData(all_cds)$gene_short_name
-all_cds@auxOrderingData$normalize_expr_data <- sexpr_nmlog
-
+all_cds@assayData$normalize_expr_data <- sexpr_nmlog
+all_cds@auxOrderingData$normalize_expr_data <- NULL
 
 
 # convert all non-numeric meta into factor, and replace _ with space to make names look nicer
@@ -237,6 +237,8 @@ usethis::use_data(tf_tbl, overwrite = T)
 usethis::use_data(cell_type_markers, overwrite = T)
 usethis::use_data(lineage_markers, overwrite = T)
 usethis::use_data(graph_genes, overwrite = T)
+
+tools::add_datalist("../VisCello")
 
 devtools::load_all()
 

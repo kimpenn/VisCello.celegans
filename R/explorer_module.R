@@ -587,7 +587,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             return()
         }
         if(input$log_transform_gene == "log2") {
-            ev$gene_values <- t(as.matrix(all_cds@auxOrderingData$normalize_expr_data[input$gene_list,ev$vis@idx, drop=F]))
+            ev$gene_values <- t(as.matrix(all_cds@assayData$normalize_expr_data[input$gene_list,ev$vis@idx, drop=F]))
         } else if(input$log_transform_gene == "raw") {
             ev$gene_values <- t(as.matrix(exprs(all_cds)[input$gene_list,ev$vis@idx, drop=F]))
         }
@@ -772,7 +772,6 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 tmp<-ev$meta %>% tibble::rownames_to_column("Cell")
                 rownames(tmp) <- tmp$Cell
                 pData(cur_cds) <- tmp
-                cur_cds@auxOrderingData$normalize_expr_data <- NULL
                 saveRDS(cur_cds, con, compress=F) # Not compress so that saving is faster
             } else if(format == "downmeta") {
                 write.csv(ev$meta[ev$cells, ], con)
@@ -1289,7 +1288,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         colorBy_name <-  pmeta_attr$meta_name[which(pmeta_attr$meta_id == input$bp_colorBy)]
         if(input$bp_log_transform_gene == "log2") {
-            df <- as.data.frame(as.matrix(all_cds@auxOrderingData$normalize_expr_data[input$bp_gene, ev$vis@idx[cur_idx]]))
+            df <- as.data.frame(as.matrix(all_cds@assayData$normalize_expr_data[input$bp_gene, ev$vis@idx[cur_idx]]))
         } else {
             df <- as.data.frame(as.matrix(exprs(all_cds)[input$bp_gene, ev$vis@idx[cur_idx]]))
         }

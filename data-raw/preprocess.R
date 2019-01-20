@@ -175,6 +175,22 @@ meta_old$t250.lineages <- factor(meta_old$t250.lineages, levels = unique_levels)
 pData(all_cds) <- meta_old
 
 
+# Make a new cds to clean up stuff?
+
+pd <- new("AnnotatedDataFrame", data = pData(all_cds))
+fd <- new("AnnotatedDataFrame", data = fData(all_cds))
+cds <- newCellDataSet(exprs(all_cds), phenoData = pd, featureData = fd)
+cds@assayData$normalize_expr_data <- all_cds@assayData$normalize_expr_data
+all_cds <- cds
+
+
+cello <- new("ExpressionSet", assayData = assayDataNew("environment", exprs=exprs(all_cds)),
+             phenoData =  pd,
+             featureData = fd)
+cello@assayData$normalize_expr_data <- all_cds@assayData$normalize_expr_data
+
+
+
 # Graph plot
 
 graph_genes <- graph_genes[order(graph_genes)]
@@ -222,23 +238,33 @@ genes[which(!genes %in% gene_symbol_choices)]
 
 
 
-### Final test and load data ###
+# Convert all_cds monocle to ExpressionSet to reduce memory use
+load("data-raw/all_cds.rda")
+fmeta <- fData(all_cds)
+fmeta <- fmeta[, c(1,2)]
+colnames(fmeta) <- c("id", "symbol")
+eset <- new("ExpressionSet",
+            assayData = assayDataNew( "environment", exprs=exprs(all_cds), norm_exprs = all_cds@assayData$normalize_expr_data),
+            phenoData =  new("AnnotatedDataFrame", data = pData(all_cds)),
+            featureData = new("AnnotatedDataFrame", data = fmeta))
+saveRDS(eset, paste0("inst/app/data/eset.rds"))
 
 
-usethis::use_data(clist, overwrite = T)
-usethis::use_data(elist, overwrite = T)
-usethis::use_data(all_cds, overwrite = T)
-usethis::use_data(pmeta_attr, overwrite = T)
-
-usethis::use_data(g_all, overwrite = T)
-usethis::use_data(g_meta_list, overwrite = T)
-
-usethis::use_data(tf_tbl, overwrite = T)
-usethis::use_data(cell_type_markers, overwrite = T)
-usethis::use_data(lineage_markers, overwrite = T)
-usethis::use_data(graph_genes, overwrite = T)
-
-tools::add_datalist("../VisCello")
+### Final test and load data ### 
+# usethis::use_data(clist, overwrite = T)
+# usethis::use_data(elist, overwrite = T)
+# usethis::use_data(all_cds, overwrite = T)
+# usethis::use_data(pmeta_attr, overwrite = T)
+# 
+# usethis::use_data(g_all, overwrite = T)
+# usethis::use_data(g_meta_list, overwrite = T)
+# 
+# usethis::use_data(tf_tbl, overwrite = T)
+# usethis::use_data(cell_type_markers, overwrite = T)
+# usethis::use_data(lineage_markers, overwrite = T)
+# usethis::use_data(graph_genes, overwrite = T)
+# 
+# tools::add_datalist("../VisCello")
 
 devtools::load_all()
 

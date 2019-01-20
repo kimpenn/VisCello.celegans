@@ -80,7 +80,7 @@ function(input, output, session) {
         usr <- do.call(reactiveValues,r_data$usr)
         rm(r_data, envir = .GlobalEnv)
     } else {
-        cmeta <- reactiveValues(df=pData(all_cds))
+        cmeta <- reactiveValues(df=pData(eset))
         usr <- reactiveValues(clist = clist, elist = elist)
     }
 

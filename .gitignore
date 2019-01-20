@@ -2,7 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-data/*
-!data/.gitkeep 
 data-raw/*
 !data-raw/*.R
+.DS_Store

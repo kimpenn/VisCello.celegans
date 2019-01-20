@@ -351,6 +351,10 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
         ggtitle(plot_title) +
         theme(plot.title = element_text(hjust = 0.5), legend.position = legend.position)
     if(!is.null(onplotAnnot)) {
+        label_data <- proj %>% group_by_at(group.by) %>% summarize_at(plot_col, median)
+        if(length(breaks) > 0) {
+            label_data <- label_data[label_data[[group.by]] %in% breaks,,drop=F]
+        }
         if(onplotAnnot == "text") {
             pp<- pp + geom_text(
                 aes_string(
@@ -360,13 +364,9 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
                 size = onplotAnnotSize,
                 nudge_x = nudge_x,
                 nudge_y = nudge_y,
-                data = proj %>% group_by_at(group.by) %>% summarize_at(plot_col, median)
+                data = label_data
             )
         } else {
-            label_data <- proj %>% group_by_at(group.by) %>% summarize_at(plot_col, median)
-            if(length(breaks) > 0) {
-                label_data <- label_data[label_data[[group.by]] %in% breaks,,drop=F]
-            }
             pp<- pp + geom_label(
                 aes_string(
                     label = group.by

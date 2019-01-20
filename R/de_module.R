@@ -433,15 +433,14 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
             test_group <- de_idx$group_name[gidx]
             test_group[which(test_group == "")] <- "Background"
             test_idx <- de_idx$idx_list[gidx]
-            test_clus <- unlist(sapply(1:length(gidx), function(i){
+            test_clus <- unlist(lapply(1:length(gidx), function(i){
                 rep(test_group[i], length(test_idx[[i]]))
             }))
             test_idx <- unlist(test_idx)
-            cur_cds <- all_cds[, test_idx]
+            cur_cds <- eset[, test_idx]
             gene_idx <- Matrix::rowSums(exprs(cur_cds)) > 0
             cur_cds <- cur_cds[gene_idx,]
-            feature_data <- fData(cur_cds)[,c("id", "gene_short_name")]
-            colnames(feature_data) <- c("id", "symbol")
+            feature_data <- fData(cur_cds)
             prioritized_genes <- runsSeq(dat=as.matrix(exprs(cur_cds)), group=test_clus, fdata = feature_data, order_by="pvalue", p_cutoff= input$de_pval_cutoff, min_mean = 0, min_log2fc = 0)
         })
         de_list <- lapply(prioritized_genes, function(x) {
@@ -524,7 +523,7 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         } else {
             sample <- de_res$sample
             idx <- cur_list[[sample]]@idx
-            cur_factor <- cmeta$df[idx,][[input$de_hmap_colorBy]]
+            cur_factor <- des$meta[[input$de_hmap_colorBy]]
             unique_factors <- unique(cur_factor)
             de_res$plot_group = cur_factor[match(de_res$test_idx, idx)]
             factor_color <- get_factor_color(unique_factors, pal=input$de_plot_color_pal, maxCol = 9)
@@ -545,6 +544,14 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         }
     })
     
+    # observe({
+    #     assign("de_res", reactiveValuesToList(de_res), env = .GlobalEnv)
+    # })
+    # 
+    # observe({
+    #     assign("de_idx", reactiveValuesToList(de_idx), env = .GlobalEnv)
+    # })
+    
     output$de_hmap <- renderPlot({
         req(de_res$de_list)
         shut_device <- dev.list()[which(names(dev.list()) != "quartz_off_screen")]
@@ -552,9 +559,9 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         if(sum(unlist(lapply(de_res$deg, function(x)x$significant))) < 2) return()
         withProgress(message="Rendering heatmap..", {
             if(input$de_hmap_scale == "log2") {
-                dat <- all_cds@auxOrderingData$normalize_expr_data[de_res$feature_idx, de_res$test_idx]
+                dat <- eset@assayData$norm_exprs[de_res$feature_idx, de_res$test_idx]
             } else {
-                dat <- exprs(all_cds)[de_res$feature_idx, de_res$test_idx]
+                dat <- exprs(eset)[de_res$feature_idx, de_res$test_idx]
             }
             de_res$hmap<-gbm_pheatmap2(dat,
                                        genes_to_plot = de_res$deg,
@@ -574,9 +581,9 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         #assign("de_res", reactiveValuesToList(de_res), env=.GlobalEnv)
         withProgress(message="Rendering heatmap..", {
             if(input$de_hmap_scale == "log2") {
-                dat <- all_cds@auxOrderingData$normalize_expr_data[de_res$feature_idx, de_res$test_idx]
+                dat <- eset@assayData$norm_exprs[de_res$feature_idx, de_res$test_idx]
             } else {
-                dat <- exprs(all_cds)[de_res$feature_idx, de_res$test_idx]
+                dat <- exprs(eset)[de_res$feature_idx, de_res$test_idx]
             }
             return(
                 heatmaply_plot(dat,

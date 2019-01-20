@@ -407,29 +407,6 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         }
     })
 
-    observeEvent(input$run_clust, {
-        req(ev$vis)
-        idx <- ev$vis@idx
-        if(grepl("pca", input$proj_type)){
-            showNotification("Clustering can only run with UMAP projection.", type="error", duration=10)
-            return()
-        }
-        withProgress(message = 'Processing...', {
-            incProgress(1/2)
-            proj<=switch(input$proj_type,
-                         umap2dl = ev$vis@umap[[1]]$umap2d,
-                         umap2dh = ev$vis@umap[[2]]$umap2d,
-                         umap2dj = ev$vis@umap[[3]]$umap2d,
-                         umap3dl = ev$vis@umap[[1]]$umap3d,
-                         umap3dh = ev$vis@umap[[2]]$umap3d,
-                         umap3dj = ev$vis@umap[[3]]$umap3d)
-            set.seed(2016)
-            clus <- as.factor(louvain_clus(proj[,c(1,2)], k=input$recomp_clus_k, resolution = input$recomp_clus_res))
-            # Update cluster for all projections
-            ev$vis@pmeta$Cluster<- clus
-            ev$list[[ev$sample]] <- ev$vis
-        })
-    })
 
     
     # Data dependent
@@ -486,8 +463,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             }
             factor_color[["unannotated"]] <- "lightgrey"
             
-            if(input$proj_colorBy %in% c("cell.type", "cell.subtype")) {
+            if(input$proj_colorBy %in% c("cell.type", "cell.subtype")) { 
                 factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 10)) 
+            } else if(input$proj_colorBy %in% c("t250.lineages", "temp.ABala.250", "subtype.linage")) {
+                factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 12)) # Lower?
+                print(factor_breaks)
             } else {
                 factor_breaks <- names(factor_color)
             }
@@ -587,9 +567,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             return()
         }
         if(input$log_transform_gene == "log2") {
-            ev$gene_values <- t(as.matrix(all_cds@assayData$normalize_expr_data[input$gene_list,ev$vis@idx, drop=F]))
+            ev$gene_values <- t(as.matrix(eset@assayData$norm_exprs[input$gene_list,ev$vis@idx, drop=F]))
         } else if(input$log_transform_gene == "raw") {
-            ev$gene_values <- t(as.matrix(exprs(all_cds)[input$gene_list,ev$vis@idx, drop=F]))
+            ev$gene_values <- t(as.matrix(exprs(eset)[input$gene_list,ev$vis@idx, drop=F]))
         }
         #assign("ev", reactiveValuesToList(ev), env =.GlobalEnv)
     })
@@ -768,11 +748,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         content = function(con, format = input$selectCell_goal) {
             req(format, length(ev$cells))
             if(format == "downcell") {
-                cur_cds <- all_cds[,ev$cells]
+                cur_eset <- eset[,ev$cells]
                 tmp<-ev$meta %>% tibble::rownames_to_column("Cell")
                 rownames(tmp) <- tmp$Cell
-                pData(cur_cds) <- tmp
-                saveRDS(cur_cds, con, compress=F) # Not compress so that saving is faster
+                pData(cur_eset) <- tmp
+                saveRDS(cur_eset, con, compress=F) # Not compress so that saving is faster
             } else if(format == "downmeta") {
                 write.csv(ev$meta[ev$cells, ], con)
             }
@@ -805,8 +785,8 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells chosen by", ev$cell_source), choices = list(
                     "Zoom in to selected cells" = "zoom", 
                     "Name selected cell subset" = "addmeta",
-                    "Compute new PCA/UMAP with selected cells" = "compdimr",
-                    "Download expression data (Monocle cds format) of selected cells" = "downcell",
+                    #"Compute new PCA/UMAP with selected cells" = "compdimr",
+                    "Download expression data (ExpressionSet format) of selected cells" = "downcell",
                     "Download meta data of selected cells" = "downmeta"
                 )))
             ),
@@ -1088,7 +1068,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             session$sendCustomMessage(type = "showalert", "Name already taken.")
             return()
         }
-        newvis <- new("cvis", idx = match(ev$cells, colnames(all_cds)))
+        newvis <- new("cvis", idx = match(ev$cells, colnames(eset)))
         newvis@proj[[input$proj_type]] <- pvals$proj[ev$cells, pvals$plot_col]
         rval$list[[input$zoom_name]] <- newvis
         rval$ustats <- "add"
@@ -1135,12 +1115,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             incProgress(1/2)
             set.seed(2018)
             #assign("ev1cells", ev$cells, env=.GlobalEnv)
-            cds_oidx <- filter_cds(cds=all_cds[,ev$cells], min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
+            cds_oidx <- filter_cds(cds=eset[,ev$cells], min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
             #assign("cds1", cds_oidx, env=.GlobalEnv)
             irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
             pca_proj <- as.data.frame(irlba_res$x)
             rownames(pca_proj) <- colnames(cds_oidx)
-            newvis <- new("cvis", idx = match(ev$cells, colnames(all_cds)))
+            newvis <- new("cvis", idx = match(ev$cells, colnames(eset)))
             newvis@proj[["PCA"]] <- pca_proj
             if(grepl("UMAP", input$compdimr_type)) {
                 n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
@@ -1288,9 +1268,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         colorBy_name <-  pmeta_attr$meta_name[which(pmeta_attr$meta_id == input$bp_colorBy)]
         if(input$bp_log_transform_gene == "log2") {
-            df <- as.data.frame(as.matrix(all_cds@assayData$normalize_expr_data[input$bp_gene, ev$vis@idx[cur_idx]]))
+            df <- as.data.frame(as.matrix(eset@assayData$norm_exprs[input$bp_gene, ev$vis@idx[cur_idx]]))
         } else {
-            df <- as.data.frame(as.matrix(exprs(all_cds)[input$bp_gene, ev$vis@idx[cur_idx]]))
+            df <- as.data.frame(as.matrix(exprs(eset)[input$bp_gene, ev$vis@idx[cur_idx]]))
         }
         
         feature_plot(df, input$bp_gene, 

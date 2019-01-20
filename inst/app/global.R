@@ -3,6 +3,9 @@
 if(Sys.getenv('SHINY_PORT') == "") options(shiny.maxRequestSize=10000*1024^2)
 
 
+
+eset <- readRDS("data/eset.rds")
+
 ### Which meta data to show, and in what order ###
 ctype_cols_advanced <- pmeta_attr$meta_id
 names(ctype_cols_advanced) <- pmeta_attr$meta_name
@@ -19,7 +22,7 @@ names(numeric_palettes) <- numeric_palettes
 
 image_palettes <- numeric_palettes[numeric_palettes %in% c("RdYlBu", "RdBu", "viridis", "magma", "plasma", "inferno")]
 heatmap_palettes <- image_palettes
-gene_symbol_choices <- rownames(all_cds)
+gene_symbol_choices <- rownames(eset)
 names(gene_symbol_choices) <- gene_symbol_choices
 
 image_colorBy_choices <- graph_genes

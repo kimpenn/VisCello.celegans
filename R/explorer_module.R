@@ -247,12 +247,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     
     observeEvent(input$proj_colorBy, {
         req(!input$proj_colorBy %in% c("moreop", "lessop"))
+        req(ev$factor_cols)
         if(input$proj_colorBy %in% pmeta_attr$meta_id && !is.null(pmeta_attr$dpal)) {
             default_pal <- pmeta_attr$dpal[which(pmeta_attr$meta_id==input$proj_colorBy)]
         } else {
             default_pal <- NULL
         }
-        
         if(input$proj_colorBy == 'gene.expr') {
             updateSelectInput(session, "color_pal", "Palette", choices=numeric_palettes, selected=default_pal)
         } else if(input$proj_colorBy %in% ev$factor_cols){
@@ -466,8 +466,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             if(input$proj_colorBy %in% c("cell.type", "cell.subtype")) { 
                 factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 10)) 
             } else if(input$proj_colorBy %in% c("t250.lineages", "temp.ABala.250", "subtype.linage")) {
-                factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 12)) # Lower?
-                print(factor_breaks)
+                factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 10)) # Lower?
             } else {
                 factor_breaks <- names(factor_color)
             }
@@ -1481,14 +1480,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     })
     
     observeEvent(input$lin_umap, {
-        print(input$lin_umap)
         umap_row <- unlist(strsplit(as.character(input$lin_umap), "_", fixed = T))
         if(length(umap_row) != 2) {
             return()
         }
         row <- as.numeric(umap_row[2])
         umap_id <- lineage_markers$UMAP[row]
-        print(umap_id)
         updateTabsetPanel(session, "lin_tab", selected = "eui")
         updateSelectInput(session, "input_sample", selected = umap_id)
     })

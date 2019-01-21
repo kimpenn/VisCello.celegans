@@ -238,8 +238,45 @@ genes[which(!genes %in% gene_symbol_choices)]
 
 
 
-# Convert all_cds monocle to ExpressionSet to reduce memory use
+
 load("data-raw/all_cds.rda")
+
+# update lin250
+
+# Rename ABalaapppp to ABalapxpap (adding these cells to the existing ABalapxpap cells)
+# Rename ABalapaapp to ABalaapppp/ABalapaapp
+# Rename ABalaapppa/ABalapaapa to ABalapxpaa
+# Rename ABalapxpaa to ABalapxppp
+# Rename ABarpapp/ABplaaap to ABarpappp/ABplaaapp
+# Rename ABarpapaa/ABplaaaaa to ABarpappa/ABplaaapa
+
+name_change <- c(
+    "ABalapxpap" = "ABalapxpap",
+    "ABalapaapp" = "ABalaapppp/ABalapaapp",
+    "ABalaapppa/ABalapaapa" = "ABalapxpaa",
+    "ABalapxpaa" = "ABalapxppp",
+    "ABarpapp/ABplaaap" = "ABarpappp/ABplaaapp",
+    "ABarpapaa/ABplaaaaa" = "ABarpappa/ABplaaapa"
+)
+
+pData(all_cds)$t250.lineages <- as.character(pData(all_cds)$t250.lineages)
+for(i in 1:length(name_change)) {
+    old_name <- names(name_change)[i]
+    new_name <- name_change[i]
+    pData(all_cds)$t250.lineages[which(pData(all_cds)$t250.lineages == old_name)] <- new_name
+}
+
+
+# Rename the cells in this attached metadata file to ABalaapppa/ABalapaapa 
+Actual.RIA.NB.ABalaapppa.and.ABalapaapa <- read.csv("~/Documents/LYNCH/Celegans/VisCello/data-raw/Actual RIA NB ABalaapppa and ABalapaapa.txt", row.names=1, stringsAsFactors=FALSE)
+pData(all_cds)$t250.lineages[which(rownames(pData(all_cds)) %in% rownames(Actual.RIA.NB.ABalaapppa.and.ABalapaapa))] <- "ABalaapppa/ABalapaapa"
+
+# Rename the cells in this attached metadata file to ABarpapaa/ABplaaaaa
+Actual.ABplaaaaa.lineage <- read.csv("~/Documents/LYNCH/Celegans/VisCello/data-raw/Actual ABplaaaaa lineage.txt", row.names=1, stringsAsFactors=FALSE)
+pData(all_cds)$t250.lineages[which(rownames(pData(all_cds)) %in% rownames(Actual.ABplaaaaa.lineage))] <- "ABarpapaa/ABplaaaaa"
+
+
+# Convert all_cds monocle to ExpressionSet to reduce memory use
 fmeta <- fData(all_cds)
 fmeta <- fmeta[, c(1,2)]
 colnames(fmeta) <- c("id", "symbol")

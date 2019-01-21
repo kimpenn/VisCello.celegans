@@ -9,6 +9,7 @@ factor_color_opt <- function() {
 get_factor_color <-function (labels, pal = "Set1", maxCol = 9, nogrey = T)
 {
     unq <- unique(labels)
+    maxCol <- min(length(unq), maxCol)
     hmcol <- RColorBrewer::brewer.pal(maxCol, pal)
     if(nogrey) {
         hmcol <- hmcol[!hmcol %in% c("#999999","#B3B3B3")]

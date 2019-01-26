@@ -228,12 +228,14 @@ replace_names <- names(keep_elist)
 keep_elist2 <- keep_elist
 keep_elist2[which(keep_elist2 == "MSXp[time250]")] <- "MSxp[time250]"
 names(replace_names) <- keep_elist2
-
+lineage_markers$UMAP <- as.character(lineage_markers$UMAP)
 lineage_markers$UMAP <- replace_names[as.character(lineage_markers$UMAP)]
+lineage_markers<-lineage_markers[lineage_markers$Lineage.Name != "Unknown MSxa descendants", ]
+write.csv(lineage_markers, "data-raw/lineage_markers_cleaned.csv")
 
 x <- as.character(lineage_markers$Markers)
 genes<-trimws(unlist(strsplit(x, ",")), which = "both")
-genes[which(!genes %in% gene_symbol_choices)]
+genes[which(!genes %in% gene_tbl$`Gene names:`)]
 
 
 
@@ -266,7 +268,6 @@ for(i in 1:length(name_change)) {
     pData(all_cds)$t250.lineages[which(pData(all_cds)$t250.lineages == old_name)] <- new_name
 }
 
-
 # Rename the cells in this attached metadata file to ABalaapppa/ABalapaapa 
 Actual.RIA.NB.ABalaapppa.and.ABalapaapa <- read.csv("~/Documents/LYNCH/Celegans/VisCello/data-raw/Actual RIA NB ABalaapppa and ABalapaapa.txt", row.names=1, stringsAsFactors=FALSE)
 pData(all_cds)$t250.lineages[which(rownames(pData(all_cds)) %in% rownames(Actual.RIA.NB.ABalaapppa.and.ABalapaapa))] <- "ABalaapppa/ABalapaapa"
@@ -285,6 +286,59 @@ eset <- new("ExpressionSet",
             phenoData =  new("AnnotatedDataFrame", data = pData(all_cds)),
             featureData = new("AnnotatedDataFrame", data = fmeta))
 saveRDS(eset, paste0("inst/app/data/eset.rds"))
+
+
+# Additional change from master eset
+Actual.ABalapxpaa <- read.csv("~/Documents/LYNCH/Celegans/VisCello/data-raw/Actual ABalapxpaa.txt")
+pData(eset)$t250.lineages[which(rownames(pData(eset)) %in% Actual.ABalapxpaa$X)] <- "ABalapxpaa"
+
+pData(eset)$t250.lineages[which(pData(eset)$t250.lineages == "ABalaapppp")] <- "IL1/IL2/OLQ/OLL neuroblasts"
+pData(eset)$t250.lineages[which(pData(eset)$t250.lineages == "Unknown MSxa descendants")] <- "unannotated"
+saveRDS(eset, paste0("inst/app/data/eset.rds"))
+
+Cello <- setClass("Cello",
+                  slots = c(
+                      name = "character", # The name of cvis
+                      idx = "numeric", # The index of global cds object
+                      proj = "list", # The projections as a list of data frame
+                      pmeta = "data.frame", # The local meta data
+                      notes = "character" # Other information to display to the user
+                  )
+)
+
+clist_cello <- lapply(1:length(clist), function(i) {
+    x <- clist[[i]]
+    cvis <- new("Cello")
+    cvis@name <- names(clist)[i]
+    cvis@idx <- x@idx
+    cvis@proj <- x@proj
+    # Also reduce PCA projection dimension to reduce size
+    if(!is.null(x@proj[["PCA"]]))    cvis@proj[["PCA"]] <- x@proj[["PCA"]]
+    #print(identical(rownames(local_pmeta), rownames(x@proj[[1]])))
+    cvis@pmeta <- x@pmeta
+    #cvis@notes <- "some notes"
+    return(cvis)
+})
+names(clist_cello) <- names(clist)
+clist <- clist_cello
+base::save(clist, file="data/clist.rda")
+
+elist_cello <- lapply(1:length(elist), function(i) {
+    x <- elist[[i]]
+    cvis <- new("Cello")
+    cvis@name <- names(elist)[i]
+    cvis@idx <- x@idx
+    cvis@proj <- x@proj
+    # Also reduce PCA projection dimension to reduce size
+    if(!is.null(x@proj[["PCA"]]))    cvis@proj[["PCA"]] <- x@proj[["PCA"]]
+    #print(identical(rownames(local_pmeta), rownames(x@proj[[1]])))
+    cvis@pmeta <- x@pmeta
+    #cvis@notes <- "some notes"
+    return(cvis)
+})
+names(elist_cello) <- names(elist)
+elist <- elist_cello
+base::save(elist, file="data/elist.rda")
 
 
 ### Final test and load data ### 

@@ -17,19 +17,19 @@ function() {
     title = div(
         "C.elegans Embryogenesis",
         div(
-         id = "sys_control",
-        dropdownButton(
-            inputId="load_state_dropdown",
-            actionButton("exit_app","Exit App", icon = icon("power-off"), width = "115px", class = "btn-primary", onclick = "setTimeout(function(){window.close();}, 100); "),
-            tags$br(),
-            fluidRow(column(12,downloadButton("state_save_sc","Save State", icon = icon("save"),class = "btn_leftAlign btn-primary", style="width: 115px"))),
-            tags$br(),
-            fileInput2('uploadState', NULL, buttonLabel = "Load State", width = "50px", accept = ".rda"),
-            uiOutput("refreshOnUpload"),
-            circle = T, label ="System Control", tooltip=T, right = T,
-            status = "syscontrol",
-            icon = icon("cog")
-        )
+            id = "sys_control",
+            dropdownButton(
+                inputId="load_state_dropdown",
+                actionButton("exit_app","Exit App", icon = icon("power-off"), width = "115px", class = "btn-primary", onclick = "setTimeout(function(){window.close();}, 100); "),
+                tags$br(),
+                fluidRow(column(12,downloadButton("state_save_sc","Save State", icon = icon("save"),class = "btn_leftAlign btn-primary", style="width: 115px"))),
+                tags$br(),
+                fileInput2('uploadState', NULL, buttonLabel = "Load State", width = "50px", accept = ".rda"),
+                uiOutput("refreshOnUpload"),
+                circle = T, label ="System Control", tooltip=T, right = T,
+                status = "syscontrol",
+                icon = icon("cog")
+            )
         )
     ),
     position = "fixed-top",
@@ -76,10 +76,10 @@ function() {
         "Differential Expression",
         de_ui("cel")
     ),
-    tabPanel(
-        "Tutorial",
-        tags$p("To be added.")
-    ),
+    # tabPanel(
+    #     "Tutorial",
+    #     tags$p("To be added.")
+    # ),
     header = tagList(
         tags$br(),
         tags$br(),

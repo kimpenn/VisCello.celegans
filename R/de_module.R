@@ -53,9 +53,10 @@ de_ui <- function(id) {
                               uiOutput(ns("hmap_configure_ui"))
                        )
                    ),
-                   uiOutput(ns("de_hmap_ui"))%>% withSpinner(),
+                   plotOutput(ns("de_hmap"), height="600px") %>% withSpinner(),
                    fluidRow(
-                       column(6, materialSwitch(inputId = ns("interactive_hmap"), tags$b("interactive"), value = F, status = "success")),
+                       column(6),
+                       #column(6, materialSwitch(inputId = ns("interactive_hmap"), tags$b("interactive"), value = F, status = "success")),
                        column(6, uiOutput(ns("download_hmap_ui")))
                    )
             )
@@ -169,9 +170,6 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         input$de_g1_group
         input$de_g2_group
         isolate({
-            groups <- des$meta[[input$de_metaclass]]
-            de_idx$idx_list[[1]] <- des$vis@idx[which(groups %in% input$de_g1_group)]
-            de_idx$idx_list[[2]] <- des$vis@idx[which(groups %in% input$de_g2_group)]
             de_idx$group[[1]] <- if(!is.null(input$de_g1_group)) input$de_g1_group else NA
             de_idx$group[[2]] <- if(!is.null(input$de_g2_group)) input$de_g2_group else NA
             de_idx$group_name[1] <-c(paste0(input$de_g1_group, collapse="_"))
@@ -184,17 +182,18 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         group_name <- de_idx$group_name
         gid <- which(group_name != "")
         group_name <- group_name[gid]
-        if(length(group_name) == 1) {
-            isolate({
+        isolate({
+            groups <- des$meta[[input$de_metaclass]]
+            de_idx$idx_list[[1]] <- des$vis@idx[which(groups %in% de_idx$group[[1]])]
+            de_idx$idx_list[[2]] <- des$vis@idx[which(groups %in% de_idx$group[[2]])]
+            if(length(group_name) == 1) {
                 cur_group <- de_idx$group[[gid]]
                 groups <- des$meta[[input$de_metaclass]]
                 de_idx$idx_list[[which(de_idx$group_name == "")[1]]] <- des$vis@idx[which(!groups %in% cur_group)]
-            })
-        } else {
-            isolate({
+            } else {
                 for(j in which(de_idx$group_name == "")) de_idx$idx_list[[j]] <- list()
-            })
-        }
+            }
+        })
     })
     
     output$downsample_de_ui <- renderUI({
@@ -422,7 +421,7 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
             return()
         }
         
-        if(length(unlist(de_idx$idx_list[gidx])) > 1e4) {
+        if(length(unlist(de_idx$idx_list[gidx])) > 3e3) {
             session$sendCustomMessage(type = "showalert", "Too many cells specified. Please downsample first use the green button on the left.")
             return()
         }
@@ -471,17 +470,6 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
                 return(tbl)
             })
         })
-    })
-    
-    
-    output$de_hmap_ui <- renderUI({
-        ns <- session$ns
-        req(de_res$deg)
-        if(input$interactive_hmap) {
-            plotlyOutput(ns("de_hmaply"), height="600px") 
-        } else {
-            plotOutput(ns("de_hmap"), height="600px") 
-        }
     })
     
     
@@ -554,8 +542,8 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
     
     output$de_hmap <- renderPlot({
         req(de_res$de_list)
-        shut_device <- dev.list()[which(names(dev.list()) != "quartz_off_screen")]
-        if(length(shut_device)) dev.off(which = shut_device) # Make sure ggsave does not change graphic device
+        #shut_device <- dev.list()[which(names(dev.list()) != "quartz_off_screen")]
+        #if(length(shut_device)) dev.off(which = shut_device) # Make sure ggsave does not change graphic device
         if(sum(unlist(lapply(de_res$deg, function(x)x$significant))) < 2) return()
         withProgress(message="Rendering heatmap..", {
             if(input$de_hmap_scale == "log2") {

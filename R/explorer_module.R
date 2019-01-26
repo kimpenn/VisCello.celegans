@@ -36,7 +36,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                         )
                        ),
                        uiOutput(ns("proj_colorBy_ui")),
-                       selectizeInput(ns("gene_list"), "Search Gene:", choices = gene_symbol_choices, multiple = T),
+                       selectizeInput(ns("gene_list"), "Search Gene:", choices = gene_tbl, multiple = T),
                        uiOutput(ns("plot_scalecolor_ui")),
                        uiOutput(ns("data_highlight"))
                    ),
@@ -77,7 +77,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             wellPanel(
                 fluidRow(
                     column(3, uiOutput(ns("bp_sample_ui"))),
-                    column(3, selectizeInput(ns("bp_gene"), "Search Gene:", choices = c("No gene selected", gene_symbol_choices), selected = "No gene selected")),
+                    column(3, selectizeInput(ns("bp_gene"), "Search Gene:", choices = c("No gene selected"="No gene selected", gene_tbl), selected = "No gene selected")),
                     column(3, uiOutput(ns("bp_colorBy_ui"))),
                     column(3, selectInput(ns("bp_log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Raw count" = "raw")))
                 ),
@@ -119,11 +119,14 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             column(4,
                    wellPanel(
                        selectInput(ns("image_colorBy"), "Color by", choices = image_colorBy_choices),
-                       selectInput(ns("image_pal"), "Palette", choices=image_palettes),
+                       fluidRow(
+                           column(6, selectInput(ns("image_scale"), "Scale", choices=c("Linear" = "linear", "Log10"="log10"), selected = "linear")),
+                           column(6, selectInput(ns("image_pal"), "Palette", choices=image_palettes))
+                       ),
                        numericInput(ns("image_ploth"), "Plot Height", min=1, value = 7, step=1),
                        tags$br(),
-                       tagList(tags$strong("EPiC Movies: "), tags$a("http://epic.gs.washington.edu/", href="http://epic.gs.washington.edu/")),
-                       tagList(tags$strong("EPiC2 Movies: "), tags$a("http://epic.gs.washington.edu/Epic2/", href="http://epic.gs.washington.edu/Epic2/"))
+                       tags$div(tags$strong("EPiC Movies: "), tags$a("http://epic.gs.washington.edu/", href="http://epic.gs.washington.edu/")),
+                       tags$div(tags$strong("EPiC2 Movies: "), tags$a("http://epic.gs.washington.edu/Epic2/", href="http://epic.gs.washington.edu/Epic2/"))
                    ),
                    fluidRow(
                        column(12, tags$p("Expression level summarized from following sources:"))
@@ -149,6 +152,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     eui
                 ),
                 tabPanel(
+                    value = "fui",
+                    tags$b("Expression by Cell Type/Lineage"),
+                    fui
+                ),
+                tabPanel(
                     value = "mui",
                     tags$b("Marker Imaging"),
                     mui
@@ -170,7 +178,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 ),
                 tabPanel(
                     value = "fui",
-                    tags$b("Expression by Cell Type"),
+                    tags$b("Expression by Cell Type/Lineage"),
                     fui
                 ),
                 tabPanel(
@@ -274,7 +282,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         })
     })
     
-    #updateSelectizeInput(session, "gene_list", "Search Gene:", choices = gene_symbol_choices, selected = NULL, server=T)
+    #updateSelectizeInput(session, "gene_list", "Search Gene:", choices = gene_tbl, selected = NULL, server=T)
 
     output$plot_ui <- renderUI({
         ns <- session$ns
@@ -302,7 +310,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         #assign("hover", hover, env=.GlobalEnv)
         x <- nearPoints(pvals$proj, hover, maxpoints = 1)
         req(nrow(x) > 0)
-        if(pvals$plot_class != "expression") {
+        if(pvals$plot_class != "expression" || is.null(ev$gene_values)) {
             y <- as.character(x[[pvals$proj_colorBy]])
             tip <- paste0("<b>", pvals$legend_title, ": </b>", y, "<br/>")
         } else {
@@ -1067,70 +1075,70 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             session$sendCustomMessage(type = "showalert", "Name already taken.")
             return()
         }
-        newvis <- new("cvis", idx = match(ev$cells, colnames(eset)))
+        newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
         newvis@proj[[input$proj_type]] <- pvals$proj[ev$cells, pvals$plot_col]
         rval$list[[input$zoom_name]] <- newvis
         rval$ustats <- "add"
         updateSelectInput(session, "input_sample", selected = input$zoom_name)
     })
 
-    observeEvent(input$compdimr_run, {
-        req(ev$cells)
-        
-        error_I <- 0
-        tryCatch({
-            reticulate::import("umap")
-        }, warning = function(w) {
-        }, error = function(e) {
-            error_I <<-1
-        })
-        
-        if(error_I) {
-            session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
-            return()
-        }
-        
-        if(is.null(input$compdimr_name) || input$compdimr_name == "") {
-            session$sendCustomMessage(type = "showalert", "Enter a name first.")
-            return()
-        }
-        if(!is.na(as.numeric(input$compdimr_name))) {
-            session$sendCustomMessage(type = "showalert", "Number name not allowed.")
-            return()
-        }
-        if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
-            session$sendCustomMessage(type = "showalert", "Name already taken.")
-            return()
-        }
-        if(input$compdimr_batch) {
-            resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
-        } else {
-            resform <- NULL
-        }
-        
-        
-
-        withProgress(message = 'Processing...', {
-            incProgress(1/2)
-            set.seed(2018)
-            #assign("ev1cells", ev$cells, env=.GlobalEnv)
-            cds_oidx <- filter_cds(cds=eset[,ev$cells], min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
-            #assign("cds1", cds_oidx, env=.GlobalEnv)
-            irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
-            pca_proj <- as.data.frame(irlba_res$x)
-            rownames(pca_proj) <- colnames(cds_oidx)
-            newvis <- new("cvis", idx = match(ev$cells, colnames(eset)))
-            newvis@proj[["PCA"]] <- pca_proj
-            if(grepl("UMAP", input$compdimr_type)) {
-                n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
-                newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
-            }
-            rval$list[[input$compdimr_name]] <- newvis
-            rval$ustats <- "add"
-        })
-        updateSelectInput(session, "input_sample", selected = input$compdimr_name)
-        showNotification("Dimension reduction successfully computed and listed in samples.", type="message", duration=10)
-    })
+    # observeEvent(input$compdimr_run, {
+    #     req(ev$cells)
+    #     
+    #     error_I <- 0
+    #     tryCatch({
+    #         reticulate::import("umap")
+    #     }, warning = function(w) {
+    #     }, error = function(e) {
+    #         error_I <<-1
+    #     })
+    #     
+    #     if(error_I) {
+    #         session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
+    #         return()
+    #     }
+    #     
+    #     if(is.null(input$compdimr_name) || input$compdimr_name == "") {
+    #         session$sendCustomMessage(type = "showalert", "Enter a name first.")
+    #         return()
+    #     }
+    #     if(!is.na(as.numeric(input$compdimr_name))) {
+    #         session$sendCustomMessage(type = "showalert", "Number name not allowed.")
+    #         return()
+    #     }
+    #     if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
+    #         session$sendCustomMessage(type = "showalert", "Name already taken.")
+    #         return()
+    #     }
+    #     if(input$compdimr_batch) {
+    #         resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
+    #     } else {
+    #         resform <- NULL
+    #     }
+    #     
+    #     
+    # 
+    #     withProgress(message = 'Processing...', {
+    #         incProgress(1/2)
+    #         set.seed(2018)
+    #         #assign("ev1cells", ev$cells, env=.GlobalEnv)
+    #         cds_oidx <- filter_cds(cds=eset[,ev$cells], min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
+    #         #assign("cds1", cds_oidx, env=.GlobalEnv)
+    #         irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
+    #         pca_proj <- as.data.frame(irlba_res$x)
+    #         rownames(pca_proj) <- colnames(cds_oidx)
+    #         newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
+    #         newvis@proj[["PCA"]] <- pca_proj
+    #         if(grepl("UMAP", input$compdimr_type)) {
+    #             n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
+    #             newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
+    #         }
+    #         rval$list[[input$compdimr_name]] <- newvis
+    #         rval$ustats <- "add"
+    #     })
+    #     updateSelectInput(session, "input_sample", selected = input$compdimr_name)
+    #     showNotification("Dimension reduction successfully computed and listed in samples.", type="message", duration=10)
+    # })
 
     
     ### Feature Plot ###
@@ -1141,7 +1149,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         plotOutput(ns("bp_gene_plot"), height = paste0(500/5.5 *input$bp_show_ploth,"px")) %>% withSpinner()
     })
     
-    #updateSelectizeInput(session, "bp_gene", "Search Gene:", choices = c("No gene selected", gene_symbol_choices), selected = "No gene selected", server=T)
+    #updateSelectizeInput(session, "bp_gene", "Search Gene:", choices = c("No gene selected", gene_tbl), selected = "No gene selected", server=T)
     
     output$bp_sample_ui <- renderUI({
         ns <- session$ns
@@ -1244,7 +1252,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     })
     
     bp1 <- reactive({
-        req(input$bp_colorBy,input$bp_include, length(input$bp_gene) == 1, input$bp_gene != "No gene selected", input$bp_gene %in% gene_symbol_choices)
+        req(input$bp_colorBy,input$bp_include, length(input$bp_gene) == 1, input$bp_gene != "No gene selected", input$bp_gene %in% gene_tbl[[1]])
         req(ev$sample == input$bp_sample, ev$sample == input$bp_include_I) # IMPORTANT, this controls the sync between sample choices in the explorer and the featurePlot, and prevent double rendering
         cur_group <- ev$meta[[input$bp_colorBy]]
         # Downsample cells from each cell type
@@ -1385,10 +1393,15 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     })
     
     output$image_graph_plot <- renderPlot({
-        req(input$image_colorBy, input$image_pal)
+        req(input$image_colorBy, input$image_pal, input$image_scale)
         t_cut <- 108
         plotg <- input$image_colorBy
-        g<-g_all %>% activate("nodes") %>% 
+        if(input$image_scale == "log10") {
+            g <- g_all
+        } else {
+            g <- g_agg
+        }
+        g<-g %>% activate("nodes") %>% 
             mutate(text.size = ifelse(time > t_cut, 0, 10/log10(time+1))) %>%
             mutate(name = ifelse(time > t_cut, "", name)) %>%
             filter(!(time > 200 & is.na(!!as.name(plotg))))
@@ -1432,13 +1445,13 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             #assign("ns1", ns, env=.GlobalEnv)
             btns <- paste(
                 sapply(genes, function(g){
-                    if(g == "POE") return(g)
-                    if(grepl("no ", g)) {
-                        g <- gsub("no ", "", g)
-                        return(
-                            paste0("no ", shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)")))
-                        )
-                    }
+                    if(!g %in% gene_tbl[[1]]) return(g)
+                    # if(grepl("no ", g)) {
+                    #     g <- gsub("no ", "", g)
+                    #     return(
+                    #         paste0("no ", shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)")))
+                    #     )
+                    # }
                     shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
                 }),
                 collapse = ",&nbsp")
@@ -1450,7 +1463,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             x <- as.character(lin_show$UMAP[i])
             shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_umap"),  "\", this.id)"))
         })
-        names(lin_show) <- c("Lineage Name", "UMAP", "Markers", "Cells Produced", "Notes")
+        names(lin_show) <- c("Lineage Name", "UMAP", "Markers", "Cells Produced")
         
         DT::datatable(lin_show, selection = 'none',
                       rownames=F, 

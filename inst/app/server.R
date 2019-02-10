@@ -165,8 +165,6 @@ function(input, output, session) {
                sclist = usr,
                cmeta = cmeta
     )
-    
 
-    
     
 }

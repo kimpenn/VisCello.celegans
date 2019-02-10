@@ -421,7 +421,7 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
             return()
         }
         
-        if(length(unlist(de_idx$idx_list[gidx])) > 3e3) {
+        if(length(unlist(de_idx$idx_list[gidx])) > 8e3) {
             session$sendCustomMessage(type = "showalert", "Too many cells specified. Please downsample first use the green button on the left.")
             return()
         }
@@ -479,26 +479,24 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         dropdownButton2(inputId=ns("hmap_configure"),
                         fluidRow(
                             column(6, selectInput(ns("de_hmap_colorBy"), "Heatmap Color By", choices = des$meta_options)),
-                            column(6, selectInput(ns("de_hmap_scale"), "Data scale", choices = c("Log2 normalized count"="log2", "Raw count" = "raw")))
+                            column(6, selectInput(ns("hmap_scale"), "Data scale", choices = c("Scaled log2 normalized count"="scaled_log2", "Log2 normalized count"="log2", "Raw count" = "raw")))
                         ),
                         fluidRow(
                             column(6, selectInput(ns("hmap_color_pal"), "Heatmap Color", choices=heatmap_palettes)),
                             column(6, numericInput(ns("hmap_numg"), "Max #DEG/Group", min=2, max = 500, value = 30, step=1))
                         ),
                         fluidRow(
-                            column(6, selectInput(ns("hmap_dscale"), "Data Scale", choices=list("scaled log2" = "scaled log2", "log2"="log2"))),
-                            column(6, numericInput(ns("hmap_pseudoc"), "Pseudocount", min=1e-5, max = 1, value = 1, step=1e-3))
-                        ),
-                        fluidRow(
-                            column(6, numericInput(ns("hmap_limitlow"), "Expression z-score cutoff low", value = -2, step=1)),
-                            column(6, numericInput(ns("hmap_limithigh"), "Expression z-score cutoff high", value = 2, step=1))
+                            column(6, numericInput(ns("hmap_limitlow"), "Expression cutoff low", value = -2, step=1)),
+                            column(6, numericInput(ns("hmap_limithigh"), "Expression cutoff high", value = 2, step=1))
                         ),
                         circle = T, label ="Configure Heatmap", tooltip=T, right = T,
                         icon = icon("cog"), size = "xs", status="primary", class = "btn_rightAlign")
     })
     
-    observe({
-        req(de_res$deg, input$hmap_dscale)
+    
+    output$de_hmap <- renderPlot({
+        req(de_res$sample == input$de_sample)
+        req(de_res$deg)
         if(sum(sapply(de_res$de_list, nrow)) == 0) return()
         cur_list <- c(sclist$clist,sclist$elist)
         #isolate({
@@ -525,28 +523,16 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         } else {
             de_res$heatmap_color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
         }
-        if(input$hmap_dscale == "scaled log2"){
+        if(input$hmap_scale == "scaled_log2"){
             de_res$scale = T
-        } else if(input$hmap_dscale == "log2") {
+        } else {
             de_res$scale = F
         }
-    })
-    
-    # observe({
-    #     assign("de_res", reactiveValuesToList(de_res), env = .GlobalEnv)
-    # })
-    # 
-    # observe({
-    #     assign("de_idx", reactiveValuesToList(de_idx), env = .GlobalEnv)
-    # })
-    
-    output$de_hmap <- renderPlot({
-        req(de_res$de_list)
         #shut_device <- dev.list()[which(names(dev.list()) != "quartz_off_screen")]
         #if(length(shut_device)) dev.off(which = shut_device) # Make sure ggsave does not change graphic device
         if(sum(unlist(lapply(de_res$deg, function(x)x$significant))) < 2) return()
         withProgress(message="Rendering heatmap..", {
-            if(input$de_hmap_scale == "log2") {
+            if(grepl("log2", input$hmap_scale)) {
                 dat <- eset@assayData$norm_exprs[de_res$feature_idx, de_res$test_idx]
             } else {
                 dat <- exprs(eset)[de_res$feature_idx, de_res$test_idx]
@@ -556,7 +542,7 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
                                        cells_to_plot=de_res$cells_to_plot,
                                        group=de_res$plot_group,
                                        group_colour=de_res$group_colour,
-                                       log=F, pseudocount = input$hmap_pseudoc,
+                                       log=F, pseudocount = 1,
                                        scale = de_res$scale,
                                        heatmap_color = de_res$heatmap_color,
                                        n_genes=input$hmap_numg, fontsize=8, limits=c(input$hmap_limitlow, input$hmap_limithigh))
@@ -564,29 +550,6 @@ de_server <- function(input, output, session, sclist = NULL, cmeta = NULL){
         grid::grid.draw(de_res$hmap$gtable)
     })
     
-    output$de_hmaply <- renderPlotly({
-        req(de_res$de_list)
-        #assign("de_res", reactiveValuesToList(de_res), env=.GlobalEnv)
-        withProgress(message="Rendering heatmap..", {
-            if(input$de_hmap_scale == "log2") {
-                dat <- eset@assayData$norm_exprs[de_res$feature_idx, de_res$test_idx]
-            } else {
-                dat <- exprs(eset)[de_res$feature_idx, de_res$test_idx]
-            }
-            return(
-                heatmaply_plot(dat,
-                               genes_to_plot = de_res$deg,
-                               cells_to_plot=de_res$cells_to_plot,
-                               group=de_res$plot_group,
-                               group_colour=de_res$group_colour,
-                               log=F, pseudocount = input$hmap_pseudoc,
-                               scale = de_res$scale,
-                               heatmap_color = de_res$heatmap_color,
-                               n_genes=input$hmap_numg, fontsize=6, limits=c(input$hmap_limitlow, input$hmap_limithigh)) %>%
-                    plotly::layout(margin = list(l = 60, b = 30))
-            )
-        })
-    })
     
     output$deg_summary <- DT::renderDataTable({
         req(de_res$de_list)

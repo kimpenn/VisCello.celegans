@@ -57,7 +57,8 @@ data_names=list.files('data/', pattern="*.rda", full.names = TRUE)
 lapply(data_names,base::load, env = .GlobalEnv)
 
 eset <- readRDS("data/eset.rds")
-
+s3_tbl <-  readRDS("data/s3_tbl.rds")
+s6_tbl <-  readRDS("data/s6_tbl.rds")
 #lapply(list.files("src/", pattern = "\\.(r|R)$", recursive = F, full.names = TRUE), function(x){source(file = x)})
 
 

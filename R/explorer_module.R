@@ -77,11 +77,15 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             wellPanel(
                 fluidRow(
                     column(3, uiOutput(ns("bp_sample_ui"))),
-                    column(3, selectizeInput(ns("bp_gene"), "Search Gene:", choices = c("No gene selected"="No gene selected", gene_tbl), selected = "No gene selected")),
+                    column(3, selectizeInput(ns("bp_gene"), "Search gene:", choices = c("No gene selected"="No gene selected", gene_tbl), selected = "No gene selected")),
                     column(3, uiOutput(ns("bp_colorBy_ui"))),
                     column(3, selectInput(ns("bp_log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Raw count" = "raw")))
                 ),
-                uiOutput(ns("bp_include_ui"))
+                uiOutput(ns("bp_include_ui")),
+                fluidRow(
+                    column(9, tags$p("Hint: Select a gene to visualize its expression across cell types/lineages.")),
+                    column(3, actionLink(ns("bp_reset"), "Clear selected", class = "btn_rightAlign"))
+                )
             ),
             fluidRow(
                 column(6),
@@ -109,9 +113,51 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             uiOutput(ns("bp_gene_plot_ui")) 
         )
         
+        if(tabset == "ct") {
+            hmap_ui <- uiOutput(ns("sm_hmap_ui"))
+        } else {
+            hmap_ui <- tagList(
+                tags$b("Expression "),
+                tags$select(id=ns("sm_type"),
+                            class = "customDrop",
+                            tags$option(value = "hmap", "Heatmap", selected=T),
+                            tags$option(value = "radio", "Radio graph")
+                ),
+                conditionalPanel(
+                    "input.sm_type == 'hmap'",
+                    ns = ns,
+                    uiOutput(ns("sm_hmap_ui"))
+                )
+            )
+        }
+        
+        sui <- tagList(
+            wellPanel(
+                uiOutput(ns("sm_option")),
+                fluidRow(
+                    column(9, tags$p("Hint: Select one or more genes to visualize its summarized expression.")),
+                    column(3, actionLink(ns("sm_reset"), "Clear selected", class = "btn_rightAlign"))
+                )
+            ),
+            DT::dataTableOutput(ns("sm_tbl")) %>% withSpinner(),
+            downloadButton(ns("download_sm_tbl"), "Download table", class = "btn_rightAlign"),
+            fluidRow(
+                column(12,
+                       circleButton(ns("hmap_config_reset"), icon = icon("undo"), size = "xs", status = "danger btn_rightAlign"),
+                       shinyBS::bsTooltip(
+                           ns("hmap_config_reset"),
+                           title = "Reset heatmap configuration",
+                           options = list(container = "body")
+                       ),
+                       uiOutput(ns("hmap_configure_ui"))
+                )
+            ),
+            hmap_ui
+        )
+        
         cui <- tagList(
                 DT::dataTableOutput(ns("ct_marker_tbl")),
-                downloadButton(ns("download_ct_marker"), "Download Table", class = "btn_rightAlign")
+                downloadButton(ns("download_ct_marker"), "Download table", class = "btn_rightAlign")
         )
         
         # Marker imaging graph ui
@@ -123,7 +169,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                            column(6, selectInput(ns("image_scale"), "Scale", choices=c("Linear" = "linear", "Log10"="log10"), selected = "linear")),
                            column(6, selectInput(ns("image_pal"), "Palette", choices=image_palettes))
                        ),
-                       numericInput(ns("image_ploth"), "Plot Height", min=1, value = 7, step=1),
+                       numericInput(ns("image_ploth"), "Plot height", min=1, value = 7, step=1),
                        tags$br(),
                        tags$div(tags$strong("EPiC Movies: "), tags$a("http://epic.gs.washington.edu/", href="http://epic.gs.washington.edu/")),
                        tags$div(tags$strong("EPiC2 Movies: "), tags$a("http://epic.gs.washington.edu/Epic2/", href="http://epic.gs.washington.edu/Epic2/"))
@@ -140,7 +186,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         lui <- tagList(
             DT::dataTableOutput(ns("lin_marker_tbl")),
-            downloadButton(ns("download_lin_marker"), "Download Table", class = "btn_rightAlign")
+            downloadButton(ns("download_lin_marker"), "Download table", class = "btn_rightAlign")
         )
         
         if(tabset == "lin") {
@@ -155,6 +201,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     value = "fui",
                     tags$b("Expression by Cell Type/Lineage"),
                     fui
+                ),
+                tabPanel(
+                    value = "sui",
+                    tags$b("Summarized Expression"),
+                    sui
                 ),
                 tabPanel(
                     value = "mui",
@@ -180,6 +231,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     value = "fui",
                     tags$b("Expression by Cell Type/Lineage"),
                     fui
+                ),
+                tabPanel(
+                    value = "sui",
+                    tags$b("Summarized Expression"),
+                    sui
                 ),
                 tabPanel(
                     value = "cui",
@@ -1200,10 +1256,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     output$bp_include_ui <- renderUI({
         ns <- session$ns
         req(input$bp_colorBy)
+        input$bp_reset
         factors <- names(which(table(ev$meta[[input$bp_colorBy]]) >= 10)) 
-        factors <- factors[factors != "unannotated"]
+        #factors <- factors[factors != "unannotated"]
         tagList(
-            selectInput(ns("bp_include"), "Include:", choices = factors, selected=factors, multiple = T, width = '100%'),
+            selectInput(ns("bp_include"), "Include:", choices = factors, selected=NULL, multiple = T, width = '100%'),
             conditionalPanel("1==0", textInput(ns("bp_include_I"), NULL, value = ev$sample)) # indicator of rendering state of bp_include
         )
     })
@@ -1252,16 +1309,21 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     })
     
     bp1 <- reactive({
-        req(input$bp_colorBy,input$bp_include, length(input$bp_gene) == 1, input$bp_gene != "No gene selected", input$bp_gene %in% gene_tbl[[1]])
+        req(input$bp_colorBy, length(input$bp_gene) == 1, input$bp_gene != "No gene selected", input$bp_gene %in% gene_tbl[[1]])
         req(ev$sample == input$bp_sample, ev$sample == input$bp_include_I) # IMPORTANT, this controls the sync between sample choices in the explorer and the featurePlot, and prevent double rendering
         cur_group <- ev$meta[[input$bp_colorBy]]
         # Downsample cells from each cell type
-        cur_idx <- unlist(lapply(input$bp_include, function(g) {
+        if(length(input$bp_include) == 0) {
+            cur_factors <- names(which(table(ev$meta[[input$bp_colorBy]]) >= 10)) 
+        } else{
+            cur_factors <- input$bp_include
+        }
+        cur_idx <- unlist(lapply(cur_factors, function(g) {
             cidx <- which(cur_group==g)
             sample(cidx, min(length(cidx),input$bp_downsample))
         }))
         cur_meta <- ev$meta[cur_idx, input$bp_colorBy, drop=F]
-        
+
         if(grepl("time.bin", input$bp_colorBy)) { 
             req(input$bp_numericbin_pal)
             factor_color <- get_numeric_bin_color(levels(ev$meta[[input$bp_colorBy]]), palette = input$bp_numericbin_pal)
@@ -1513,6 +1575,102 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     )
     
     
+    # Summary gene expression table
+    sm <- reactiveValues(gene = NULL, tbl = NULL)
+    
+    output$sm_option <- renderUI({
+        input$sm_reset
+        if(tabset == "ct") {
+            cb_choice <- data.table::data.table(cell.bin = levels(s3_tbl$cell.bin))
+        } else {
+            cb_choice <- data.table::data.table(lineage = levels(s6_tbl$lineage))
+        }
+        ns <- session$ns
+        fluidRow(
+            column(6, selectizeInput(ns("sm_gene"), "Search gene:", choices = gene_tbl, multiple = T, options = list(placeholder = 'No gene selected'))),
+            column(6, pickerInput(ns("sm_cellbin"),"Search cell:", choices=cb_choice, options = pickerOptions(actionsBox = TRUE,liveSearch = TRUE, virtualScroll = T, width = '100%', dropdownAlignRight = TRUE, style = "btn-picker", noneSelectedText = "No cell selected"),multiple = T))
+            #column(6, selectizeInput(ns("sm_cellbin"), "Search cell:", choices = cb_choice, multiple = T))
+        )
+    })
+    
+    observe({
+        if(tabset == "ct") {
+            cur_tbl <- s3_tbl
+            sm$col <- "cell.bin"
+        } else {
+            cur_tbl <- s6_tbl
+            sm$col <- "lineage"
+        }
+        if(length(input$sm_gene)) {
+            tbl <- cur_tbl %>% dplyr::filter(gene %in% input$sm_gene)
+            if(is.null(input$sm_cellbin) || length(input$sm_cellbin) == 0) {
+                cbins <- levels(cur_tbl[[sm$col]])
+            } else {
+                cbins <- input$sm_cellbin
+            }
+            sm$tbl <- tbl[tbl[[sm$col]] %in% cbins, ]
+            sm$gene <- input$sm_gene
+        } else {
+            sm$tbl <- NULL
+            sm$gene <- NULL
+        }
+    })
+    
+    output$sm_tbl <- DT::renderDataTable({
+        req(sm$gene)
+        DT::datatable(sm$tbl, selection = 'none',
+                      rownames=F, 
+                      options = list(
+                          searching=F, 
+                          scrollX = TRUE
+                          #columnDefs = list(list(width = '20%', targets = list(0,1,2)))
+                      )
+        ) 
+        #%>%DT::formatStyle(columns = c(1),fontWeight = 'bold')
+    })
+    
+    output$download_sm_tbl <- downloadHandler(
+        filename = function() {
+            'summarized_expression.xlsx'
+        },
+        content = function(con) {
+            req(sm$tbl)
+            write.xlsx(sm$tbl, file=con)
+        }
+    )
+    
+    output$sm_hmap_ui <- renderUI({
+        req(sm$gene, input$hmap_ploth)
+        if(length(sm$gene) > 500) {
+            return(tags$p("Do not support more than 500 genes."))
+        }
+        ns <- session$ns
+        plotOutput(ns("sm_hmap"), height = paste0(100 *input$hmap_ploth,"px"))
+    })
+    
+    output$hmap_configure_ui <- renderUI({
+        ns <- session$ns
+        input$hmap_config_reset
+        dropdownButton2(inputId=ns("hmap_configure"),
+                        selectInput(ns("hmap_color_pal"), "Heatmap Color", choices=heatmap_palettes),
+                        numericInput(ns("hmap_ploth"), "Height (resize window for width)", min=3, value = 5, step=1),
+                        checkboxInput(ns("hmap_cluster_row"), "Cluster gene", T),
+                        checkboxInput(ns("hmap_cluster_col"), "Cluster cell", T),
+                        circle = T, label ="Configure Heatmap", tooltip=T, right = T,
+                        icon = icon("cog"), size = "xs", status="primary", class = "btn_rightAlign")
+    })
+    
+    output$sm_hmap <- renderPlot({
+        req(sm$gene)
+        cluster_rows <- ifelse(length(sm$gene) == 1, F, input$hmap_cluster_row)
+        cluster_cols <- ifelse(length(unique(sm$tbl[[sm$col]])) == 1, F, input$hmap_cluster_col)
+        expr_tbl<-sm$tbl[, c("gene",sm$col, "adjusted.tpm.estimate"), drop=F]
+        colnames(expr_tbl) <- c("gene","cell","expression")
+        expr_tbl<-reshape2::dcast(expr_tbl, gene~cell, value.var = "expression")
+        rownames(expr_tbl) <- expr_tbl$gene
+        expr_tbl$gene <- NULL
+        pheatmap(expr_tbl, cluster_rows = cluster_rows, cluster_cols = cluster_cols, color = get_numeric_color(input$hmap_color_pal))
+    })
     
     
     rval <- reactiveValues(mclass = NULL, cells=NULL, group_name=NULL, ulist = list())

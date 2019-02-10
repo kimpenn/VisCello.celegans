@@ -360,3 +360,26 @@ base::save(elist, file="data/elist.rda")
 devtools::load_all()
 
 
+
+
+# S3 and S6
+
+s3_tbl<-read.table(file = 'data-raw/Table_S3.tsv', sep = '\t', header = TRUE)
+saveRDS(s3_tbl, "data-raw/s3_tbl.rds")
+saveRDS(s3_tbl, "inst/app/data/s3_tbl.rds")
+s3_tbl <- readRDS("data-raw/s3_tbl.rds")
+
+
+
+s6_tbl<-read.table(file = 'data-raw/Table_S6.tsv', sep = '\t', header = TRUE)
+saveRDS(s6_tbl, "data-raw/s6_tbl.rds")
+saveRDS(s6_tbl, "inst/app/data/s6_tbl.rds")
+s6_tbl <- readRDS("data-raw/s6_tbl.rds")
+
+
+
+
+
+
+
+

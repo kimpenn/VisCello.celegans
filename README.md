@@ -2,39 +2,44 @@ VisCello for C.elegans Embryogenesis
 ================
 Qin Zhu, Kim Lab, University of Pennsylvania
 
-Installation
+Online version
 ------------------------
 
-Compile (install) the VisCello package
+Link: https://cello.shinyapps.io/celegans/
+
+Bugs you found with the online tool please post to this github repo.
+
+Installation
 --------------------------------------
 
-Open R and do the following:
+Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. 
+
+Please follow protocol listed below to install:
+
+In terminal copy paste followng line by line with return:
+
+```
+git clone https://github.com/qinzhu/VisCello.git
+R
+```
+
+Now inside R and do the following (line by line):
 
 ``` r
-setwd("/Users/yourname/Download/") # Replace the path with path to PARENT folder of VisCello
-install.packages("devtools")
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("monocle", update = F, ask=F)
-BiocManager::install("clusterProfiler", update = F, ask=F)
-BiocManager::install("org.Mm.eg.db", update = F, ask=F)
-BiocManager::install("org.Hs.eg.db", update = F, ask=F)
-devtools::install_local("VisCello.base")
+install.packages("devtools") 
+devtools::install_local("VisCello")
 ```
 
 Now VisCello is ready to go! To launch Viscello, in R:
 
 ``` r
-library(VisCello.base)
-viscello()
+library(VisCello)
+cello()
 ```
 
-Host VisCello on a server
+Cite VisCello
 -------------------------
 
-To host VisCello on a server, you need either ShinyServer (<https://www.rstudio.com/products/shiny/shiny-server/>) or use the shinyapps.io service (<https://www.shinyapps.io/>). Start Viscello on server by calling above code.
+Paper in submission at this moment.
 
-Reference
----------
 
-Paul, Franziska, Ya’ara Arkin, Amir Giladi, Diego Adhemar Jaitin, Ephraim Kenigsberg, Hadas Keren-Shaul, Deborah Winter, et al. 2015. “Transcriptional Heterogeneity and Lineage Commitment in Myeloid Progenitors.” *Cell* 163 (7). Elsevier: 1663–77.

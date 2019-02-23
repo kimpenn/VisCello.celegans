@@ -127,6 +127,11 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     "input.sm_type == 'hmap'",
                     ns = ns,
                     uiOutput(ns("sm_hmap_ui"))
+                ),
+                conditionalPanel(
+                    "input.sm_type == 'radio'",
+                    ns = ns,
+                    uiOutput(ns("sm_radio_ui"))
                 )
             )
         }
@@ -141,17 +146,6 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             ),
             DT::dataTableOutput(ns("sm_tbl")) %>% withSpinner(),
             downloadButton(ns("download_sm_tbl"), "Download table", class = "btn_rightAlign"),
-            fluidRow(
-                column(12,
-                       circleButton(ns("hmap_config_reset"), icon = icon("undo"), size = "xs", status = "danger btn_rightAlign"),
-                       shinyBS::bsTooltip(
-                           ns("hmap_config_reset"),
-                           title = "Reset heatmap configuration",
-                           options = list(container = "body")
-                       ),
-                       uiOutput(ns("hmap_configure_ui"))
-                )
-            ),
             hmap_ui
         )
         
@@ -848,7 +842,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells chosen by", ev$cell_source), choices = list(
                     "Zoom in to selected cells" = "zoom", 
                     "Name selected cell subset" = "addmeta",
-                    #"Compute new PCA/UMAP with selected cells" = "compdimr",
+                    #"Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
                     "Download expression data (ExpressionSet format) of selected cells" = "downcell",
                     "Download meta data of selected cells" = "downmeta"
                 )))
@@ -1138,63 +1132,68 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         updateSelectInput(session, "input_sample", selected = input$zoom_name)
     })
 
-    # observeEvent(input$compdimr_run, {
-    #     req(ev$cells)
-    #     
-    #     error_I <- 0
-    #     tryCatch({
-    #         reticulate::import("umap")
-    #     }, warning = function(w) {
-    #     }, error = function(e) {
-    #         error_I <<-1
-    #     })
-    #     
-    #     if(error_I) {
-    #         session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
-    #         return()
-    #     }
-    #     
-    #     if(is.null(input$compdimr_name) || input$compdimr_name == "") {
-    #         session$sendCustomMessage(type = "showalert", "Enter a name first.")
-    #         return()
-    #     }
-    #     if(!is.na(as.numeric(input$compdimr_name))) {
-    #         session$sendCustomMessage(type = "showalert", "Number name not allowed.")
-    #         return()
-    #     }
-    #     if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
-    #         session$sendCustomMessage(type = "showalert", "Name already taken.")
-    #         return()
-    #     }
-    #     if(input$compdimr_batch) {
-    #         resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
-    #     } else {
-    #         resform <- NULL
-    #     }
-    #     
-    #     
-    # 
-    #     withProgress(message = 'Processing...', {
-    #         incProgress(1/2)
-    #         set.seed(2018)
-    #         #assign("ev1cells", ev$cells, env=.GlobalEnv)
-    #         cds_oidx <- filter_cds(cds=eset[,ev$cells], min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
-    #         #assign("cds1", cds_oidx, env=.GlobalEnv)
-    #         irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
-    #         pca_proj <- as.data.frame(irlba_res$x)
-    #         rownames(pca_proj) <- colnames(cds_oidx)
-    #         newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
-    #         newvis@proj[["PCA"]] <- pca_proj
-    #         if(grepl("UMAP", input$compdimr_type)) {
-    #             n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
-    #             newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
-    #         }
-    #         rval$list[[input$compdimr_name]] <- newvis
-    #         rval$ustats <- "add"
-    #     })
-    #     updateSelectInput(session, "input_sample", selected = input$compdimr_name)
-    #     showNotification("Dimension reduction successfully computed and listed in samples.", type="message", duration=10)
-    # })
+    # Don't put in online version
+    observeEvent(input$compdimr_run, {
+        req(ev$cells)
+
+        error_I <- 0
+        tryCatch({
+            reticulate::import("umap")
+        }, warning = function(w) {
+        }, error = function(e) {
+            error_I <<-1
+        })
+
+        if(error_I) {
+            session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
+            return()
+        }
+
+        if(is.null(input$compdimr_name) || input$compdimr_name == "") {
+            session$sendCustomMessage(type = "showalert", "Enter a name first.")
+            return()
+        }
+        if(!is.na(as.numeric(input$compdimr_name))) {
+            session$sendCustomMessage(type = "showalert", "Number name not allowed.")
+            return()
+        }
+        if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
+            session$sendCustomMessage(type = "showalert", "Name already taken.")
+            return()
+        }
+        if(input$compdimr_batch) {
+            resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
+        } else {
+            resform <- NULL
+        }
+
+
+
+        withProgress(message = 'Processing...', {
+            incProgress(1/2)
+            set.seed(2018)
+            #assign("ev1cells", ev$cells, env=.GlobalEnv)
+            fd <- fData(eset[,ev$cells])[, c(1,2)]
+            colnames(fd) <- c("id", "gene_short_name")
+            cds_oidx <- newCellDataSet(cellData = exprs(eset[,ev$cells]), phenoData = new("AnnotatedDataFrame", data = pData(eset[,ev$cells])), featureData = new("AnnotatedDataFrame", data = fd))
+            pData(cds_oidx) <- pData(eset[,ev$cells])
+            cds_oidx <- filter_cds(cds=cds_oidx, min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
+            #assign("cds1", cds_oidx, env=.GlobalEnv)
+            irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
+            pca_proj <- as.data.frame(irlba_res$x)
+            rownames(pca_proj) <- colnames(cds_oidx)
+            newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
+            newvis@proj[["PCA"]] <- pca_proj
+            if(grepl("UMAP", input$compdimr_type)) {
+                n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
+                newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
+            }
+            rval$list[[input$compdimr_name]] <- newvis
+            rval$ustats <- "add"
+        })
+        updateSelectInput(session, "input_sample", selected = input$compdimr_name)
+        showNotification("Dimension reduction successfully computed and listed in samples.", type="message", duration=10)
+    })
 
     
     ### Feature Plot ###
@@ -1640,12 +1639,29 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     )
     
     output$sm_hmap_ui <- renderUI({
-        req(sm$gene, input$hmap_ploth)
+        req(sm$gene)
         if(length(sm$gene) > 500) {
             return(tags$p("Do not support more than 500 genes."))
         }
+        if(length(sm$gene) < 2 && length(unique(sm$tbl[[sm$col]])) < 2) {
+            return()
+            #return(tags$p("Minimal number of cell/gene is 2."))
+        }
         ns <- session$ns
-        plotOutput(ns("sm_hmap"), height = paste0(100 *input$hmap_ploth,"px"))
+        tagList(
+            fluidRow(
+                column(12,
+                       circleButton(ns("hmap_config_reset"), icon = icon("undo"), size = "xs", status = "danger btn_rightAlign"),
+                       shinyBS::bsTooltip(
+                           ns("hmap_config_reset"),
+                           title = "Reset heatmap configuration",
+                           options = list(container = "body")
+                       ),
+                       uiOutput(ns("hmap_configure_ui"))
+                )
+            ),
+            uiOutput(ns("sm_hmap_plot"))
+        )
     })
     
     output$hmap_configure_ui <- renderUI({
@@ -1660,6 +1676,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                         icon = icon("cog"), size = "xs", status="primary", class = "btn_rightAlign")
     })
     
+    output$sm_hmap_plot <- renderUI({
+        req(input$hmap_ploth)
+        ns <- session$ns
+        plotOutput(ns("sm_hmap"), height = paste0(100 *input$hmap_ploth,"px"))
+    })
+    
     output$sm_hmap <- renderPlot({
         req(sm$gene)
         cluster_rows <- ifelse(length(sm$gene) == 1, F, input$hmap_cluster_row)
@@ -1671,6 +1693,83 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         expr_tbl$gene <- NULL
         pheatmap(expr_tbl, cluster_rows = cluster_rows, cluster_cols = cluster_cols, color = get_numeric_color(input$hmap_color_pal))
     })
+    
+    
+    output$sm_radio_ui <- renderUI({
+        req(sm$gene)
+        if(length(sm$gene) > 1) {
+            return(tags$p("Only one gene can be plotted at a time."))
+        }
+        ns <- session$ns
+        tagList(
+            fluidRow(
+                column(12,
+                       circleButton(ns("radio_config_reset"), icon = icon("undo"), size = "xs", status = "danger btn_rightAlign"),
+                       shinyBS::bsTooltip(
+                           ns("radio_config_reset"),
+                           title = "Reset plot configuration",
+                           options = list(container = "body")
+                       ),
+                       uiOutput(ns("radio_configure_ui"))
+                )
+            ),
+            uiOutput(ns("sm_radio_plot"))
+        )
+    })
+    
+    output$radio_configure_ui <- renderUI({
+        ns <- session$ns
+        input$radio_config_reset
+        dropdownButton2(inputId=ns("radio_configure"),
+                        selectInput(ns("radio_color_pal"), "Heatmap Color", choices=heatmap_palettes),
+                        numericInput(ns("radio_ploth"), "Height (resize window for width)", min=3, value = 9, step=1),
+                        circle = T, label ="Configure radio plot", tooltip=T, right = T,
+                        icon = icon("cog"), size = "xs", status="primary", class = "btn_rightAlign")
+    })
+    
+    output$sm_radio_plot <- renderUI({
+        req(input$radio_ploth)
+        ns <- session$ns
+        plotOutput(ns("sm_radio"), height = paste0(100 *input$radio_ploth,"px"))
+    })
+    
+    output$sm_radio <- renderPlot({
+        req(sm$gene, length(sm$gene == 1))
+        expr_tbl<-sm$tbl[, c("gene",sm$col, "adjusted.tpm.estimate"), drop=F]
+        colnames(expr_tbl) <- c("gene","cell","expression")
+        #assign("expr_tbl", expr_tbl, env=.GlobalEnv)
+        match_expr<-sapply(elin_match, function(x){
+            e_val<-expr_tbl$expression[which(expr_tbl$cell == x)]
+            if(length(e_val)) {
+                return(e_val)
+            } else {
+                return(NA)
+            }
+        })
+        
+        g <- g_all %>% activate("nodes") %>% 
+            mutate(scExprTPM = match_expr)
+        
+        plot_col <- "scExprTPM"
+        
+        t_cut <- 108
+        g<-g %>% activate("nodes") %>% 
+            mutate(text.size = ifelse(time > t_cut, 0, 10/log10(time+1))) %>%
+            mutate(name = ifelse(time > t_cut, "", name)) %>%
+            filter(!(time > 200 & is.na(!!as.name(plot_col))))
+        range(as.data.frame(g)$text.size)
+        plotGraph(g, color.by=plot_col, pal=input$radio_color_pal, label="name", type = "numeric",border.size=.3, legend.title = sm$gene) + 
+            theme(
+                axis.ticks.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.ticks.y=element_blank(),
+                axis.text.y=element_blank(),
+                legend.margin=margin(15,0,0,0),
+                legend.box.margin=margin(-10,-10,-10,-10),
+                plot.margin = unit(c(.3,.5,.3,.3), "cm"))
+        
+    })
+    
     
     
     rval <- reactiveValues(mclass = NULL, cells=NULL, group_name=NULL, ulist = list())

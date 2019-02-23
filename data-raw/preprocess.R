@@ -285,6 +285,7 @@ eset <- new("ExpressionSet",
             assayData = assayDataNew( "environment", exprs=exprs(all_cds), norm_exprs = all_cds@assayData$normalize_expr_data),
             phenoData =  new("AnnotatedDataFrame", data = pData(all_cds)),
             featureData = new("AnnotatedDataFrame", data = fmeta))
+eset$Size_Factor <- all_cds$Size_Factor[match(colnames(eset), colnames(all_cds))]
 saveRDS(eset, paste0("inst/app/data/eset.rds"))
 
 
@@ -375,6 +376,110 @@ s6_tbl<-read.table(file = 'data-raw/Table_S6.tsv', sep = '\t', header = TRUE)
 saveRDS(s6_tbl, "data-raw/s6_tbl.rds")
 saveRDS(s6_tbl, "inst/app/data/s6_tbl.rds")
 s6_tbl <- readRDS("data-raw/s6_tbl.rds")
+
+
+
+
+# S6 map to graph
+
+
+image_lin <- as.data.frame(g_all)$name
+orig_lin <- as.character(levels(s6_tbl$lineage))
+
+# Match name and modify if necessary
+sexpr_lin <- strsplit(orig_lin, "/")
+lin_split <- lapply(sexpr_lin, function(x) {strsplit(x, "x")})
+sexpr_lin[which(!sexpr_lin %in% image_lin)]
+
+# Change x to proper 2 lin
+
+first_pass<-sapply(lin_split, function(x){
+    unlist(lapply(x, function(l) {
+        if(length(l) ==2) {
+            if(l[1] == "ABp") {
+                return(c(paste(l, collapse = "l"), paste(l, collapse = "r")))
+            } else if(l[1] == "MS") {
+                return(c(paste(l, collapse = "a"), paste(l, collapse = "p")))
+            } else if(l[1] == "C") {
+                return(c(paste(l, collapse = "a"), paste(l, collapse = "p")))
+            } else if(l[1] == "D") {
+                return(c(paste(l, collapse = "a"), paste(l, collapse = "p")))
+            } else if(l[1] %in% c("ABalap", "ABarpp","ABaraap")){
+                return(c(paste(l, collapse = "a"), paste(l, collapse = "p")))
+            } 
+        } else if(length(l) == 1) {
+            return(l)
+        }
+        return(NA)
+    }))
+})
+
+names(first_pass) <- orig_lin
+which(sapply(first_pass, function(x) {any(is.na(x))}))
+
+
+# Manual fix
+first_pass["ABpraaa_and_ABalppp"] <- list(c("ABpraaa", "ABalppp"))
+#first_pass["MSxppaa_or_MSxppaax_before_branching"] <- list(c("MSappaa", "MSpppaa", "MSappaaa", "MSappaap", "MSpppaaa", "MSpppaap"))
+first_pass["MSxppaa_or_MSxppaax_before_branching"] <- NA # Seems some are duplicated
+first_pass["MSxpppxa/MSxpappx"] <- list(c("MSapppaa", "MSappppa", "MSppppaa","MSpppppa", "MSapappa","MSapappp","MSppappa", "MSppappp"))
+first_pass["MSxpppxp"] <- list(c("MSapppap","MSappppp","MSppppap","MSpppppp"))
+first_pass["MSxxx"] <- list(c("MSaaa","MSaap","MSapa","MSapp","MSpaa","MSpap","MSppa","MSppp"))
+
+unlist(first_pass)[which(duplicated(unlist(first_pass)))]
+# MAP expression to graph, for duplicated cell, use the one with shorter name (more specific in annotation)
+graph_tbl <- as.data.frame(g_all)
+elin_idx<-sapply(graph_tbl$name, function(x) {
+    idx<-which(sapply(first_pass, function(y){
+        x %in% y
+    }))
+    if(length(idx) > 1) {
+        idx <- idx[which.min(sapply(first_pass[idx], length))]
+    }
+    return(idx)
+})
+
+elin_match<-sapply(elin_idx, function(i)orig_lin[i])
+
+usethis::use_data(elin_match, overwrite = T)
+
+e_tpm <- sapply(e_idx, function(i){
+    if(length(i)){
+        s6_tbl$bootstrap.median.tpm[i]
+    } else {
+        NA
+    }
+})
+
+g_all <- g_all %>% activate("nodes") %>% 
+    mutate(scExprTPM = e_tpm)
+
+plot_col <- "scExprTPM"
+t_cut <- 80
+g<-g_all %>% activate("nodes") %>% 
+    mutate(text.size = ifelse(time > t_cut, 0, 1/log(time))) %>%
+    mutate(name = ifelse(time > t_cut, "", name)) %>%
+    filter(!(time > 200 &  is.na(!!as.name(plot_col))))
+range(as.data.frame(g)$text.size)
+g1<-plotGraph(g, color.by=plot_col, pal="gg_color_hue", label="name", type = "numeric",border.size=.3, background="white") + 
+    theme(text=element_text(family = "Helvetica", size=5),
+          axis.ticks.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.text.y=element_blank(),
+          legend.margin=margin(0,0,0,0),
+          legend.box.margin=margin(-10,-10,-10,-10),
+          plot.margin = unit(c(.3,.5,.3,.3), "cm"))
+
+
+
+
+
+
+
+
+
+
 
 
 

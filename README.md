@@ -13,9 +13,7 @@ Installation
 --------------------------------------
 
 Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. 
-
 Please follow protocol listed below to install:
-
 In terminal copy paste followng line by line with return:
 
 ```

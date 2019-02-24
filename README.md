@@ -15,14 +15,16 @@ Installation
 Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. 
 Please follow protocol listed below to install:
 
-In terminal copy paste followng line by line with return:
+0. MACOS: Proceed to 1. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
+
+1. In terminal copy paste followng line by line with return:
 
 ```
 git clone https://github.com/qinzhu/VisCello.git
-R
+R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
 ```
 
-Now inside R and do the following (line by line):
+2. Now inside R and do the following (line by line):
 
 ``` r
 install.packages("devtools") 

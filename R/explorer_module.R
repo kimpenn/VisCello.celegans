@@ -842,7 +842,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells chosen by", ev$cell_source), choices = list(
                     "Zoom in to selected cells" = "zoom", 
                     "Name selected cell subset" = "addmeta",
-                    #"Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
+                    "Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
                     "Download expression data (ExpressionSet format) of selected cells" = "downcell",
                     "Download meta data of selected cells" = "downmeta"
                 )))
@@ -1580,9 +1580,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     output$sm_option <- renderUI({
         input$sm_reset
         if(tabset == "ct") {
-            cb_choice <- data.table::data.table(cell.bin = levels(s3_tbl$cell.bin))
+            cb_choice <- data.table::data.table(cell.bin = levels(ct_tbl$cell.bin))
         } else {
-            cb_choice <- data.table::data.table(lineage = levels(s6_tbl$lineage))
+            cb_choice <- data.table::data.table(lineage = levels(lin_tbl$lineage))
         }
         ns <- session$ns
         fluidRow(
@@ -1594,10 +1594,10 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     
     observe({
         if(tabset == "ct") {
-            cur_tbl <- s3_tbl
+            cur_tbl <- ct_tbl
             sm$col <- "cell.bin"
         } else {
-            cur_tbl <- s6_tbl
+            cur_tbl <- lin_tbl
             sm$col <- "lineage"
         }
         if(length(input$sm_gene)) {

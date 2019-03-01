@@ -430,11 +430,12 @@ feature_plot <- function(df, selected_gene, group.by = "sample", meta = NULL, pa
     
     g1 <- ggplot(df, aes_string(x=group.by, y="expression_level"))
     
-    g1 <- g1 + geom_point(position=position_jitter(w=0.1,h=0), size = pointSize, aes_string(colour = group.by, group = group.by))
     if(style == "box") {
-        g1 <- g1 + geom_boxplot(aes_string(fill = group.by, alpha = 0.2))
+        g1 <- g1 + geom_boxplot(aes_string(fill = group.by, alpha = 0.2), outlier.size = 1, outlier.stroke = 0, outlier.alpha = .2)
     } else if(style == "violin") {
-        g1 <- g1 + geom_violin(aes_string(fill = group.by, alpha = 0.2), trim = F)
+        g1 <- g1 + geom_violin(aes_string(fill = group.by, alpha = 0.2), trim = T, scale = "width")
+    } else if(style == "points") {
+        g1 <- g1 + geom_jitter(size = pointSize, aes_string(colour = group.by))
     }
     
     if(!is.null(names(pal))) {

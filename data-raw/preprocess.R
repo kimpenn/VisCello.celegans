@@ -238,11 +238,6 @@ genes<-trimws(unlist(strsplit(x, ",")), which = "both")
 genes[which(!genes %in% gene_tbl$`Gene names:`)]
 
 
-
-
-
-load("data-raw/all_cds.rda")
-
 # update lin250
 
 # Rename ABalaapppp to ABalapxpap (adding these cells to the existing ABalapxpap cells)
@@ -287,7 +282,24 @@ eset <- new("ExpressionSet",
             featureData = new("AnnotatedDataFrame", data = fmeta))
 eset$Size_Factor <- all_cds$Size_Factor[match(colnames(eset), colnames(all_cds))]
 saveRDS(eset, paste0("inst/app/data/eset.rds"))
+saveRDS(eset, paste0("data-raw/eset.rds"))
 
+
+# Update annotation to latest
+eset <- readRDS(paste0("data-raw/eset.rds"))
+cds_190301 <- readRDS("data-raw/for-qin.cds.all.bg.corrected.unfiltered.rds")
+identical(colnames(eset), colnames(cds_190301)) # TRUE - good to go
+
+# Remove annotations not to be shown
+remove_ids <- c("mm.lineage", "temp.ABala.250")
+pData(eset)<-pData(eset)[, -which(colnames(pData(eset)) %in% remove_ids)]
+
+pData(eset)$combine_lineage <- pData(cds_190301)$lineage
+pData(eset)$combine_lineage[which(is.na(pData(eset)$combine_lineage))] <- "unannotated"
+saveRDS(eset, paste0("inst/app/data/eset.rds"))
+
+pmeta_attr <- rbind(pmeta_attr, c(meta_id = "combine_lineage", meta_name = "Lineage", is_numeric=F, dpal = "Set1", dscale = NA))
+save(pmeta_attr, file = paste0("inst/app/data/pmeta_attr.rda"))
 
 # Additional change from master eset
 Actual.ABalapxpaa <- read.csv("~/Documents/LYNCH/Celegans/VisCello/data-raw/Actual ABalapxpaa.txt")
@@ -296,6 +308,21 @@ pData(eset)$t250.lineages[which(rownames(pData(eset)) %in% Actual.ABalapxpaa$X)]
 pData(eset)$t250.lineages[which(pData(eset)$t250.lineages == "ABalaapppp")] <- "IL1/IL2/OLQ/OLL neuroblasts"
 pData(eset)$t250.lineages[which(pData(eset)$t250.lineages == "Unknown MSxa descendants")] <- "unannotated"
 saveRDS(eset, paste0("inst/app/data/eset.rds"))
+
+
+# saveRDS(eset, paste0("inst/app/data/eset1.rds"))
+# save(eset, file=paste0("inst/app/data/eset1.RData"))
+
+# system.time(eset <- readRDS(paste0("inst/app/data/eset1.rds")))
+# system.time(load(paste0("inst/app/data/eset1.RData")))
+
+
+
+
+
+
+
+
 
 Cello <- setClass("Cello",
                   slots = c(
@@ -365,18 +392,14 @@ devtools::load_all()
 
 # S3 and S6
 
-s3_tbl<-read.table(file = 'data-raw/Table_S3.tsv', sep = '\t', header = TRUE)
-saveRDS(s3_tbl, "data-raw/s3_tbl.rds")
-saveRDS(s3_tbl, "inst/app/data/s3_tbl.rds")
-s3_tbl <- readRDS("data-raw/s3_tbl.rds")
-
-
-
 s6_tbl<-read.table(file = 'data-raw/Table_S6.tsv', sep = '\t', header = TRUE)
 saveRDS(s6_tbl, "data-raw/s6_tbl.rds")
 saveRDS(s6_tbl, "inst/app/data/s6_tbl.rds")
-s6_tbl <- readRDS("data-raw/s6_tbl.rds")
 
+
+s7_tbl<-read.table(file = 'data-raw/Table_S7.tsv', sep = '\t', header = TRUE)
+saveRDS(s7_tbl, "data-raw/s7_tbl.rds")
+saveRDS(s7_tbl, "inst/app/data/s7_tbl.rds")
 
 
 

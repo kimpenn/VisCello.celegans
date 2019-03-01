@@ -2,7 +2,7 @@ Package: VisCello
 Type: Package
 Title: A visualization tool for single cell data of C.elegans embrogenesis
 Version: 1.0.0
-Author: Qin Zhu, Jonathan Packer, Junyhong Kim, John Murray, Bob Waterston
+Author: Qin Zhu, Jonathan Packer, Junyhong Kim, John I. Murray, Robert H. Waterston
 Maintainer: Qin Zhu <zhuqin@pennmedicine.upenn.edu>
 Description: A visualization tool for C.elegans scRNA-Seq data. Also applicable to other scRNA-Seq/scATAC-Seq data as a hosting, exploration and analysis platfrom (see VisCello.base). 
 Depends:

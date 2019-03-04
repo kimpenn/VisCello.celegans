@@ -15,7 +15,8 @@ Installation
 Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. 
 Please follow protocol listed below to install:
 
-0. MACOS: Proceed to 1. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
+0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
+    * MACOS and Linux: Install git-lfs from https://git-lfs.github.com/
 
 1. In terminal copy paste followng line by line with return:
 
@@ -38,9 +39,16 @@ library(VisCello)
 cello()
 ```
 
+FAQ
+-------------------------
+
+* Q: I see error in R complaining: "Error in readRDS("data/eset.rds"): unknown input format", what should I do?
+    * A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1.
+
+
 Cite VisCello
 -------------------------
 
-Paper in submission at this moment.
+Packer, Jonathan S., et al. "A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell resolution." bioRxiv (2019): 565549.
 
 

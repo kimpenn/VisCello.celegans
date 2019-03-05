@@ -16,12 +16,13 @@ Due to large data file currently being hosted on Git LFS, you cannot use devtool
 Please follow protocol listed below to install:
 
 0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
-    * MACOS and Linux: Install git-lfs from https://git-lfs.github.com/
+
+    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew)
 
 1. In terminal copy paste followng line by line with return:
 
     ```
-    git clone https://github.com/qinzhu/VisCello.git
+    git lfs clone https://github.com/qinzhu/VisCello.git
     R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
     ```
 
@@ -44,12 +45,13 @@ FAQ
 
 * Q: I see error in R complaining: "Error in readRDS("data/eset.rds"): unknown input format", what should I do?
     
-    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. If the problem persists, try use following code to download VisCello:
+    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. Example code using brew:
     
     ```
-    git lfs clone https://github.com/qinzhu/VisCello.git
+    brew install git-lfs
+    git lfs install
+    git-lfs clone https://github.com/qinzhu/VisCello.git
     ```
-
 
 Cite VisCello
 -------------------------

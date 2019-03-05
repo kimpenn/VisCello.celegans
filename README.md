@@ -20,30 +20,35 @@ Please follow protocol listed below to install:
 
 1. In terminal copy paste followng line by line with return:
 
-```
-git clone https://github.com/qinzhu/VisCello.git
-R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
-```
+    ```
+    git clone https://github.com/qinzhu/VisCello.git
+    R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
+    ```
 
 2. Now inside R and do the following (line by line):
 
-``` r
-install.packages("devtools") 
-devtools::install_local("VisCello")
-```
+    ``` r
+    install.packages("devtools") 
+    devtools::install_local("VisCello")
+    ```
 
-Now VisCello is ready to go! To launch Viscello, in R:
+    Now VisCello is ready to go! To launch Viscello, in R:
 
-``` r
-library(VisCello)
-cello()
-```
+    ``` r
+    library(VisCello)
+    cello()
+    ```
 
 FAQ
 -------------------------
 
 * Q: I see error in R complaining: "Error in readRDS("data/eset.rds"): unknown input format", what should I do?
-    * A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1.
+    
+    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. If the problem persists, try use following code to download VisCello:
+    
+    ```
+    git lfs clone https://github.com/qinzhu/VisCello.git
+    ```
 
 
 Cite VisCello

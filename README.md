@@ -17,7 +17,9 @@ Please follow protocol listed below to install:
 
 0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
 
-    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew)
+    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew).
+    
+    Any system: Install R (>3.4 required).
 
 1. In terminal copy paste followng line by line with return:
 

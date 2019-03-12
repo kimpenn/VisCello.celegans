@@ -545,7 +545,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     #print(paste0(input$gene_list, ": ", input$g_limit))
                     limits <- c(0,input$g_limit)
                 } 
-                if(!is.null(input$cell_expr_gene)) {
+                if(!is.null(input$cell_expr_gene) && !is.null(ev$gene_values)) {
                     if(input$cell_expr_gene!="nulv") {
                         proj$alpha <- ifelse(rowSums(ev$gene_values > 0) == ncol(ev$gene_values), "f", "t")
                     }

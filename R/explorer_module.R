@@ -346,7 +346,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                            ),
                            hover = hoverOpts(id = ns("plot2d_hover"), delay = 50)), #%>% withSpinner()
                 uiOutput(ns("plot2d_tooltip")),
-                tags$p("Hint: Mouse over points to see the detailed annotation. Drag on plots to select cells. Set plot aesthetics (legend etc.) using cog button on topright.")
+                tags$li("Hint: Mouse over points to see the detailed annotation. Drag on plots to select cells. Set plot aesthetics (legend etc.) using cog button on topright.", style = "font-size:12px")
             )
         } else {
             req(pp1_3d())

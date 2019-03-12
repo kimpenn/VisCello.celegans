@@ -58,6 +58,4 @@ FAQ
 Cite VisCello
 -------------------------
 
-Packer, Jonathan S., et al. "A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell resolution." bioRxiv (2019): 565549.
-
-
+Packer, J.S., Zhu, Q., Huynh, C., Sivaramakrishnan, P., Preston, E., Dueck, H., Stefanik, D., Tan, K., Trapnell, C., Kim, J. and Waterston, R.H., 2019. A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell resolution. BioRxiv, p.565549.

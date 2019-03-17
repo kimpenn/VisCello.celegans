@@ -498,6 +498,22 @@ g1<-plotGraph(g, color.by=plot_col, pal="gg_color_hue", label="name", type = "nu
 
 
 
+# Post submission update: t150 lineages
+load("data-raw/postsub_update/State-2019-03-02_with_t150_updates.rda")
+new_t150_df <- r_data$cmeta$df
+nrow(new_t150_df)
+rm(r_data)
+rm(r_state)
+
+identical(rownames(new_t150_df), colnames(eset))
+
+saveRDS(pData(eset), "data-raw/pData_archive/pData-190317.rds")
+pData(eset)$t150.lineages <- new_t150_df$t150.lineages
+# Write over combined lineages
+pData(eset)$combine_lineage[which(pData(eset)$t150.lineages!="unannotated")] <- pData(eset)$t150.lineages[which(pData(eset)$t150.lineages!="unannotated")]
+
+saveRDS(eset, "inst/app/data/eset.rds")
+
 
 
 

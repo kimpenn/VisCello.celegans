@@ -19,7 +19,7 @@ Please follow protocol listed below to install:
 
     MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew).
     
-    Any system: Install R (>3.4 required) and latest bioconductor (code below):
+    Any system: Install R (>3.4 required) and latest bioconductor (code below, copy and paste line by line inside R):
     
     ```
     if (!requireNamespace("BiocManager"))

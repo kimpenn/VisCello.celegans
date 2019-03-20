@@ -25,6 +25,7 @@ Please follow protocol listed below to install:
     if (!requireNamespace("BiocManager"))
     install.packages("BiocManager")
     BiocManager::install()
+    # For first time installer, if prompted "Update all/some/none? [a/s/n]", type a and press return.
     ```
 
 1. In terminal copy paste followng line by line with return:

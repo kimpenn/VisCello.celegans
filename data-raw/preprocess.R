@@ -517,13 +517,92 @@ saveRDS(eset, "inst/app/data/eset.rds")
 
 
 
+## Post submission update: lncRNA quantification
+eset <- readRDS("inst/app/data/eset.rds")
+source("data-raw/scripts/Load_10x_data.R")
+
+sample_dirs <- c(
+    "Waterston 300 minutes"= "/kimdata/zhuqin/celegans/lncQuant/Waterston_300_min_ncRNA/",
+    "Waterston 400 minutes"="/kimdata/zhuqin/celegans/lncQuant/Waterston_400_min_ncRNA/",
+    "Waterston 500 minutes batch 1" = "/kimdata/zhuqin/celegans/lncQuant/Waterston_500_min_batch_1_ncRNA/",
+    "Waterston 500 minutes batch 2" = "/kimdata/zhuqin/celegans/lncQuant/Waterston_500_min_batch_2_ncRNA/",
+    "Murray r17"="/kimdata/zhuqin/celegans/lncQuant/Murray_r17_ncRNA/",
+    "Murray b01" = "/kimdata/zhuqin/celegans/lncQuant/Murray_b01_ncRNA/",
+    "Murray b02"="/kimdata/zhuqin/celegans/lncQuant/Murray_b02_ncRNA/"
+)
+
+pmeta <- pData(eset)
+pmeta$barcode <- paste0(sapply(strsplit(rownames(pData(eset)), "-"), function(x)x[[1]]), "-1")
 
 
+Counter=0
+for(i in 1:length(sample_dirs)) {
+    dirName <- sample_dirs[i]
+    batch <- names(sample_dirs)[i]
+    message(dirName)
+    raw_matrix <- load_cellranger_matrix(dirName, barcode_filtered = F)
+    barcode_in <- pmeta$barcode[which(pmeta$batch == batch)]
+    names(barcode_in) <- rownames(pmeta)[which(pmeta$batch == batch)]
+    ThisMatrix = exprs(raw_matrix)[, match(barcode_in, colnames(raw_matrix))]
+    colnames(ThisMatrix)<-names(barcode_in)
+    print(dim(ThisMatrix))
+    if(Counter==0){
+        Counter=Counter+1
+        CombinedMatrix = ThisMatrix
+    }else{
+        Counter=Counter+1
+        CombinedMatrix = cbind(CombinedMatrix,ThisMatrix)
+    }        
+}
+
+CombinedMatrix <- CombinedMatrix[, match(colnames(eset), colnames(CombinedMatrix))]
+saveRDS(CombinedMatrix, "data-raw/rds/lncRNA_combined_mtx.rds")
 
 
+# Also load annotation to add gene name
+
+library(rtracklayer)
+lncs <- import("/kimdata/zhuqin/celegans/lncQuant/ce.WS260.ncRNA/genes/genes.gtf")
+
+tid <- sapply(rownames(CombinedMatrix), function(x) {
+    print(x)
+    cur_lnc <- lncs[which(lncs$gene_id == x)]
+    cur_tid <- cur_lnc$transcript_id[which(!is.na(cur_lnc$transcript_id))]
+    return(cur_tid[1])
+})
+fmeta <- data.frame(id = rownames(CombinedMatrix), symbol = tid)
+sum(duplicated(fmeta$symbol))
+rownames(fmeta) <- fmeta$symbol
+rownames(CombinedMatrix) <- fmeta$symbol
+
+# Normalization together with mRNA
+
+all_cds <- readRDS(paste0("/kimdata/zhuqin/celegans/data_analysis/CAtlas/data/all_cds.rds"))
+identical(colnames(all_cds), colnames(CombinedMatrix))
+
+lnc_cds<- newCellDataSet(CombinedMatrix,
+            phenoData = new("AnnotatedDataFrame", data = pData(eset)),
+            featureData = new("AnnotatedDataFrame", data = fmeta))
+identical(rownames(pData(lnc_cds)), rownames(pData(eset)))
+pData(lnc_cds)$Size_Factor <- pData(eset)$Size_Factor
+source("data-raw/scripts/compute_dimR.R")
+FM <- normalize_expr_data2(lnc_cds, "log", 1, use_order_gene = F)
+saveRDS(FM, paste0("data-raw/rds/lnc_normalized_FM.rds"))
+
+# Archive eset before change
+# saveRDS(eset, paste0("data-raw/rds/eset_archive0403.rds"))
 
 
+combine_expr <- Matrix(rbind(exprs(eset), exprs(lnc_cds)), sparse = T)
+combind_norm <- Matrix(rbind(eset@assayData$norm_exprs, FM), sparse = T)
+combined_fmeta <- rbind(fData(eset), fData(lnc_cds))
 
+eset <- new("ExpressionSet",
+            assayData = assayDataNew( "environment", exprs=combine_expr, norm_exprs = combind_norm),
+            phenoData =  new("AnnotatedDataFrame", data = pData(eset)),
+            featureData = new("AnnotatedDataFrame", data = combined_fmeta))
 
+saveRDS(eset, paste0("inst/app/data/eset.rds"))
 
+expr_cnt <- rowSums(exprs(eset))
 

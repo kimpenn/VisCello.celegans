@@ -31,7 +31,8 @@ Depends:
     clusterProfiler,
     celegans.db,
     ggraph,
-    tidygraph
+    tidygraph,
+    data.table
 Imports:
     reticulate,
     limma,

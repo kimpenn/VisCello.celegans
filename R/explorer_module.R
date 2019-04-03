@@ -538,12 +538,16 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             if(input$proj_colorBy == "gene.expr"){
                 plot_class <- "expression"
                 if(length(input$gene_list) == 1) {
-                    req(!is.na(input$g_limit))
+                    #req(!is.na(input$g_limit))
                     req(input$g_limit_sample == ev$sample)
                     req(input$g_limit_ds == input$log_transform_gene)
                     req(input$g_limit_gene == input$gene_list)
                     #print(paste0(input$gene_list, ": ", input$g_limit))
-                    limits <- c(0,input$g_limit)
+                    if(is.na(input$g_limit)) {
+                        limits <- c(0,1)
+                    } else {
+                        limits <- c(0,input$g_limit)
+                    }
                 } 
                 if(!is.null(input$cell_expr_gene) && !is.null(ev$gene_values)) {
                     if(input$cell_expr_gene!="nulv") {

@@ -57,7 +57,7 @@ eset <- readRDS("data/eset.rds")
 ct_tbl <-  readRDS("data/s6_tbl.rds")
 lin_tbl <-  readRDS("data/s7_tbl.rds")
 #lapply(list.files("src/", pattern = "\\.(r|R)$", recursive = F, full.names = TRUE), function(x){source(file = x)})
-
+gene_tbl <- data.table("Gene names:" = rownames(eset))
 
 ### Which meta data to show, and in what order ###
 ctype_cols_advanced <- pmeta_attr$meta_id

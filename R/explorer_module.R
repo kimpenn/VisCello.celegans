@@ -1505,31 +1505,33 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         lin_show$Markers <- lapply(1:nrow(lin_show), function(i) {
             x <- as.character(lin_show$Markers[i])
+            if(is.na(x) || x == "") return("")
             genes<-trimws(unlist(strsplit(x, ",")), which = "both")
-            #if(any(!genes%in%gene_symbol_choices)) print(genes)
-            #assign("ns1", ns, env=.GlobalEnv)
             btns <- paste(
                 sapply(genes, function(g){
                     if(!g %in% gene_tbl[[1]]) return(g)
-                    # if(grepl("no ", g)) {
-                    #     g <- gsub("no ", "", g)
-                    #     return(
-                    #         paste0("no ", shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)")))
-                    #     )
-                    # }
                     shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
                 }),
                 collapse = ",&nbsp")
             return(btns)
         })
-        #assign("ns1", session$ns, env=.GlobalEnv)
+        lin_show$New.markers <- lapply(1:nrow(lin_show), function(i) {
+            x <- as.character(lin_show$New.markers[i])
+            if(is.na(x) || x == "") return("")
+            genes<-trimws(unlist(strsplit(x, ",")), which = "both")
+            btns <- paste(
+                sapply(genes, function(g){
+                    if(!g %in% gene_tbl[[1]]) return(g)
+                    shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
+                }),
+                collapse = ",&nbsp")
+            return(btns)
+        })
         lin_show$UMAP <- lapply(1:nrow(lin_show), function(i) {
-            if(is.na(lin_show$UMAP[i])) return(NA)
+            if(is.na(lin_show$UMAP[i]) || lin_show$UMAP[i] == "") return(NA)
             x <- as.character(lin_show$UMAP[i])
             shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_umap"),  "\", this.id)"))
         })
-        names(lin_show) <- c("Lineage Name", "UMAP", "Markers", "Cells Produced")
-        
         DT::datatable(lin_show, selection = 'none',
                       rownames=F, 
                       editable = F, 
@@ -1559,10 +1561,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     
     observeEvent(input$lin_umap, {
         umap_row <- unlist(strsplit(as.character(input$lin_umap), "_", fixed = T))
-        if(length(umap_row) != 2) {
-            return()
-        }
-        row <- as.numeric(umap_row[2])
+        row <- as.numeric(umap_row[length(umap_row)])
         umap_id <- lineage_markers$UMAP[row]
         updateTabsetPanel(session, "lin_tab", selected = "eui")
         updateSelectInput(session, "input_sample", selected = umap_id)

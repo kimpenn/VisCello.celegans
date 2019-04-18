@@ -59,15 +59,57 @@ lin_tbl <-  readRDS("data/s7_tbl.rds")
 #lapply(list.files("src/", pattern = "\\.(r|R)$", recursive = F, full.names = TRUE), function(x){source(file = x)})
 gene_tbl <- data.table("Gene names:" = rownames(eset))
 
+
+# "Meta data" of cell meta data, decide which meta to show, which color to apply to different meta
+
+colorby_order <- c(
+    "Cell type (broad)" = "cell.type",
+    "Cell type + cell subtype" = "plot.cell.type",
+    "Cell subtype" = "cell.subtype",
+    "Lineage" = "combine_lineage",
+    
+    "Gene expression" = "gene.expr", # This will not be in any meta column
+    "UMI count" = "n.umi",
+    "Number of expressed Genes" = "num.genes.expressed",
+    "Size factor" = "Size_Factor",
+    "Likely doublets/debris" = "to.filter",
+    
+    "Batch" = "batch",
+    "Time point" = "time.point",
+    "Embryo time" = "raw.embryo.time",
+    "Embryo time bin" = "raw.embryo.time.bin",
+    
+    "Cluster" = "Cluster" # Note only this meta data is taken from local cvis object, 'Cluster' is now allowed in global meta colnames.
+)
+
+pmeta_attr <- data.frame(meta_id = colorby_order, meta_name = names(colorby_order), stringsAsFactors=FALSE)
+
+pmeta_attr$is_numeric <- sapply(as.character(pmeta_attr$meta_id), function(x) {
+    if(x %in% colnames(pData(eset))) {
+        is.numeric(pData(eset)[[x]])
+    } else if(x %in% colnames(clist[[1]]@pmeta)) {
+        is.numeric(clist[[1]]@pmeta[[x]])
+    } else if(x == "gene.expr") {
+        T
+    } else {
+        NA
+    }
+})
+
+
+# optional, default_pal of each meta
+pmeta_attr$dpal <- ifelse(pmeta_attr$is_numeric, "rainbow2", "Set1")
+pmeta_attr$dpal[grepl("time.bin", pmeta_attr$meta_id)] <- "gg_color_hue"
+pmeta_attr$dscale <- ifelse(pmeta_attr$is_numeric, "log10", NA)
+pmeta_attr$dscale[which(pmeta_attr$meta_id %in% c("Size_Factor", "raw.embryo.time", "embryo.time"))] <- "identity"
+
 ### Which meta data to show, and in what order ###
 ctype_cols_advanced <- pmeta_attr$meta_id
 names(ctype_cols_advanced) <- pmeta_attr$meta_name
 ctype_cols_basic <- ctype_cols_advanced[c("Cell type (broad)", "Cell type + cell subtype", "Lineage", "Gene expression", "Embryo time")]
-elin_cols_basic <- ctype_cols_advanced[c("Lineage", "150min early lineage","250min early lineage","Gene expression", "Embryo time")]
+elin_cols_basic <- ctype_cols_advanced[c("Lineage","Cell type (broad)", "Cell type + cell subtype", "Gene expression", "Embryo time")]
 elin_cols_advanced <- c(elin_cols_basic, ctype_cols_advanced[!ctype_cols_advanced %in% elin_cols_basic])
-
 bp_colorBy_choices <- ctype_cols_advanced[c("Cell type (broad)", "Cell subtype","Lineage", "Embryo time bin")]
-
 de_meta_options <- ctype_cols_advanced[c("Cell type (broad)", "Cell subtype", "Lineage", "Cluster")]
 
 numeric_palettes <- numeric_color_opt()

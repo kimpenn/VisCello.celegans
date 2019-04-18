@@ -110,56 +110,7 @@ pData(all_cds)$embryo.time.bin <- factor(pData(all_cds)$embryo.time.bin, levels 
 pData(all_cds)$raw.embryo.time.bin <- factor(pData(all_cds)$raw.embryo.time.bin, levels = bin_level[!is.na(bin_level)])
 # Now construct a "meta attribute dataframe" to store the info of what each column is about, and which ones you want to show
 # This will be used in the 'Color By' option
-colorby_order <- c(
-    "Cell type (broad)" = "cell.type",
-    "Cell type + cell subtype" = "plot.cell.type",
-    "Cell subtype" = "cell.subtype",
-    
-    "Gene expression" = "gene.expr", # This will not be in any meta column
-    "UMI count" = "n.umi",
-    "Number of expressed Genes" = "num.genes.expressed",
-    "Size factor" = "Size_Factor",
-    "Likely doublets/debris" = "to.filter",
-    
-    "Batch" = "batch",
-    "Time point" = "time.point",
-    "Embryo time" = "raw.embryo.time",
-    "Embryo time bin" = "raw.embryo.time.bin",
-    
-    "150min early lineage" = "t150.lineages",
-    "250min early lineage" = "t250.lineages",
-    "Muscle mesoderm early lineage" = "mm.lineage",
-    "Abala early lineage" = "temp.ABala.250",
-    
-    "Cluster" = "Cluster" # Note only this meta data is taken from local cvis object, 'Cluster' is now allowed in global meta colnames.
-)
 
-pmeta_attr <- data.frame(meta_id = colorby_order, meta_name = names(colorby_order), stringsAsFactors=FALSE)
-
-pmeta_attr$is_numeric <- sapply(as.character(pmeta_attr$meta_id), function(x) {
-    if(x %in% colnames(pData(all_cds))) {
-        is.numeric(pData(all_cds)[[x]])
-    } else if(x %in% colnames(clist[[1]]@pmeta)) {
-        is.numeric(clist[[1]]@pmeta[[x]])
-    } else if(x == "gene.expr") {
-        T
-    } else {
-        NA
-    }
-})
-
-
-
-# Which meta to show in (hide from) basic menu [this is set in global.R]
-# pmeta_attr$basic_menu <- ifelse(pmeta_attr$meta_name %in% c("Cell type", "Cell subtype", "Gene Expression", "Embryo time bin"), T, F)
-
-# optional, default_pal of each meta
-pmeta_attr$dpal <- ifelse(pmeta_attr$is_numeric, "rainbow2", "Set1")
-pmeta_attr$dpal[grepl("time.bin", pmeta_attr$meta_id)] <- "gg_color_hue"
-pmeta_attr$dscale <- ifelse(pmeta_attr$is_numeric, "log10", NA)
-pmeta_attr$dscale[which(pmeta_attr$meta_id %in% c("Size_Factor", "raw.embryo.time", "embryo.time"))] <- "identity"
-# For now you need to manually specify
-pData(all_cds) <- pData(all_cds)[,which(colnames(pData(all_cds)) %in% colorby_order)]
 
 
 
@@ -498,25 +449,6 @@ g1<-plotGraph(g, color.by=plot_col, pal="gg_color_hue", label="name", type = "nu
 
 
 
-# Post submission update: t150 lineages
-load("data-raw/postsub_update/State-2019-03-02_with_t150_updates.rda")
-new_t150_df <- r_data$cmeta$df
-nrow(new_t150_df)
-rm(r_data)
-rm(r_state)
-
-identical(rownames(new_t150_df), colnames(eset))
-
-saveRDS(pData(eset), "data-raw/pData_archive/pData-190317.rds")
-pData(eset)$t150.lineages <- new_t150_df$t150.lineages
-# Write over combined lineages
-pData(eset)$combine_lineage[which(pData(eset)$t150.lineages!="unannotated")] <- pData(eset)$t150.lineages[which(pData(eset)$t150.lineages!="unannotated")]
-
-saveRDS(eset, "inst/app/data/eset.rds")
-
-
-
-
 ## Post submission update: lncRNA quantification
 eset <- readRDS("inst/app/data/eset.rds")
 source("data-raw/scripts/Load_10x_data.R")
@@ -605,4 +537,159 @@ eset <- new("ExpressionSet",
 saveRDS(eset, paste0("inst/app/data/eset.rds"))
 
 expr_cnt <- rowSums(exprs(eset))
+
+
+
+
+
+# Post submission update: t150 lineages
+eset <- readRDS("inst/app/data/eset.rds")
+load("data-raw/postsub_update/State-2019-03-02_with_t150_updates.rda")
+new_t150_df <- r_data$cmeta$df
+nrow(new_t150_df)
+
+pData(eset) <- readRDS("data-raw/pData_archive/pData-190317.rds")
+identical(rownames(new_t150_df), rownames(pData(eset)))
+
+#saveRDS(pData(eset), "data-raw/pData_archive/pData-190317.rds")
+pData(eset)$t150.lineages <- new_t150_df$t150.lineages
+# Write over combined lineages
+pData(eset)$combine_lineage[which(pData(eset)$t150.lineages!="unannotated")] <- pData(eset)$t150.lineages[which(pData(eset)$t150.lineages!="unannotated")]
+
+#saveRDS(eset, "inst/app/data/eset.rds")
+
+# Post submission update: NewLineageAnnots_post_t150_updates4.rda
+load("data-raw/postsub_update/NewLineageAnnots_post_t150_updates4.rda")
+new_lin_df <- r_data$cmeta$df
+nrow(new_lin_df)
+
+identical(rownames(new_lin_df), colnames(eset))
+update_idx <- which(new_lin_df$NewLineage != "unannotated")
+# Don't update t150 annotation
+ignore_idx <- which(pData(eset)$t150.lineages != "unannotated")
+length(ignore_idx)
+update_idx <- setdiff(update_idx, ignore_idx)
+length(update_idx)
+
+pData(eset)$t150.lineages <- NULL
+pData(eset)$t250.lineages <- NULL
+pData(eset)$combine_lineage[update_idx] <- new_lin_df$NewLineage[update_idx]
+
+# Check if any of the old lineages that should be removed are still present
+missing_lin_markers <- read.csv("data-raw/postsub_update/missing_lin_markers.csv", row.names = 1)
+pData(eset)$combine_lineage[which(pData(eset)$combine_lineage %in% missing_lin_markers$Lineage.Name[missing_lin_markers$Operation == "RM"])] <- "unannotated"
+
+# Reverse order of r and l
+lin_split <- strsplit(pData(eset)$combine_lineage, "/")
+lin_split_len<-sapply(lin_split, length)
+#lin_split[which(lin_split_len > 2)]
+lin_sorted <- lapply(lin_split, sort)
+lin_sorted <- sapply(lin_sorted, function(x) {
+    paste0(x, collapse = "/")
+})
+
+correct_idx <- which(lin_sorted != pData(eset)$combine_lineage)
+lin_correct <- data.frame(Orig_name = pData(eset)$combine_lineage[correct_idx], New_name = lin_sorted[correct_idx])
+lin_correct <- lin_correct[!duplicated(lin_correct), ]
+lin_correct <- lin_correct[order(lin_correct$New_name),]
+write.csv(lin_correct, paste0("data-raw/postsub_update/lineage_name_resorted.csv"))
+
+pData(eset)$combine_lineage <- lin_sorted
+sum(pData(eset)$combine_lineage != "unannoated")
+saveRDS(pData(eset), "data-raw/pData_archive/pData-190417_updated.rds")
+saveRDS(eset, "inst/app/data/eset.rds")
+
+
+
+
+# Update lineage marker sheet 
+
+load("data-raw/postsub_update/NewLineageAnnots_post_t150_updates4.rda")
+# Previous lineage
+lineage_markers <- read.xlsx("data-raw/postsub_update/LineageMarkers_addPrevious.xlsx")
+lineage_markers$Alternate.name <- NULL
+lineage_markers$UMAP.group <- NULL
+# Count cells for the annoatated lineage
+lineage_markers$Lineage.Name <- sapply(lapply(strsplit(lineage_markers$Lineage.Name, "/"),sort), function(x)paste0(x, collapse = "/"))
+
+lineage_markers$count <- table(pData(eset)$combine_lineage)[as.character(lineage_markers$Lineage.Name)]
+lineage_markers[which(is.na(lineage_markers$count) & !lineage_markers$Cells.produced %in% c("x", "death")),]
+
+unique(lineage_markers$UMAP)[!unique(lineage_markers$UMAP) %in% c(names(r_data$usr$clist), names(r_data$usr$elist))]
+
+# saveRDS(elist, "data-raw/pData_archive/elist_190418_archive.rds")
+# saveRDS(clist, "data-raw/pData_archive/clist_190418_archive.rds")
+cur_elist <- readRDS("data-raw/pData_archive/elist_190418_archive.rds")
+cur_clist <- readRDS("data-raw/pData_archive/clist_190418_archive.rds")
+new_elist_name <- unique(lineage_markers$UMAP)[unique(lineage_markers$UMAP) %in% c(names(r_data$usr$clist), names(r_data$usr$elist))]
+new_elist_name <- setdiff(new_elist_name, c(names(cur_elist), names(cur_clist)))
+elist <- c(cur_elist, c(r_data$usr$clist, r_data$usr$elist)[new_elist_name])
+save(elist, file="inst/app/data/elist.rda")
+
+
+# Update cells produced
+library(stringi)
+library(tibble)
+cell_list <- read.csv("data-raw/celegans_cell_list.csv")
+cell_list <- cell_list %>% mutate(lineage_name =stri_replace_all_fixed(cell_list$Lineage.Name, " ", ""))
+
+Lineage.Name.expanded <- strsplit(lineage_markers$Lineage.Name, "/")
+
+lin_expand <-sapply(Lineage.Name.expanded, function(x){
+    paste0(sort(unlist(lapply(x, function(l) {
+        dts<- grep(paste0("^", stri_replace_all_fixed(l, "x", ".")), cell_list$lineage_name, value = T)
+        unique(strtrim(dts, nchar(l)))
+    }))), collapse = "/")
+})
+lineage_markers<- add_column(lineage_markers,  Lineage.Name.expanded= lin_expand, .after = 1)
+lineage_markers$Lineage.Name.expanded[lineage_markers$Lineage.Name.expanded == ""] <- lineage_markers$Lineage.Name[lineage_markers$Lineage.Name.expanded == ""]
+cell_list$Cell <- as.character(cell_list$Cell)
+dt_cells <- sapply(Lineage.Name.expanded, function(x){
+    paste0(unlist(lapply(x, function(l) {
+        dts<- sort(grep(paste0("^", stri_replace_all_fixed(l, "x", ".")), cell_list$lineage_name, value = T))
+        dts <- unique(cell_list$Cell[match(dts, cell_list$lineage_name)])
+    })), collapse = "/")
+})
+
+lineage_markers$Cells.produced <- dt_cells
+
+# Also combine columns note and trajectory leads to
+
+lineage_markers$Notes <- ifelse(!is.na(lineage_markers[["Trajectory.leads.to:"]]), 
+                                    ifelse(is.na(lineage_markers$Notes), 
+                                           paste0("trajectory leads to: ", lineage_markers[["Trajectory.leads.to:"]]), 
+                                           paste0(lineage_markers$Notes, "; trajectory leads to: ", lineage_markers[["Trajectory.leads.to:"]])),
+                                    lineage_markers$Notes)
+
+lineage_markers[["Trajectory.leads.to:"]] <- NULL
+lineage_markers$scRNA.cell.count <- lineage_markers$count
+lineage_markers$count <- NULL
+# Reorder columns
+col_order <- c("Lineage.Name", "Lineage.Name.expanded", "Depth", "Cells.produced", "UMAP","Markers", "New.markers", "scRNA.cell.count","Notes") 
+lineage_markers <- lineage_markers[,col_order]
+# Reorder by lineage
+lineage_markers <- lineage_markers[order(lineage_markers$Lineage.Name), ]
+
+lineage_markers$UMAP[which(!lineage_markers$UMAP %in% c(names(clist), names(elist)))] <- ""
+write.xlsx(lineage_markers, "data-raw/postsub_update/LineageMarkers_JM_QZcleaned.xlsx")
+save(lineage_markers, file = "inst/app/data/lineage_markers.rda")
+
+
+load("data-raw/postsub_update/NewLineageAnnots_post_t150_updates4.rda")
+
+replace_names <- names(keep_elist)
+keep_elist2 <- keep_elist
+keep_elist2[which(keep_elist2 == "MSXp[time250]")] <- "MSxp[time250]"
+names(replace_names) <- keep_elist2
+lineage_markers$UMAP <- as.character(lineage_markers$UMAP)
+lineage_markers$UMAP <- replace_names[as.character(lineage_markers$UMAP)]
+lineage_markers<-lineage_markers[lineage_markers$Lineage.Name != "Unknown MSxa descendants", ]
+write.csv(lineage_markers, "data-raw/lineage_markers_cleaned.csv")
+
+x <- as.character(lineage_markers$Markers)
+genes<-trimws(unlist(strsplit(x, ",")), which = "both")
+genes[which(!genes %in% gene_tbl$`Gene names:`)]
+
+
+
 

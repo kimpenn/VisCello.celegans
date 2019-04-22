@@ -494,7 +494,7 @@ saveRDS(CombinedMatrix, "data-raw/rds/lncRNA_combined_mtx.rds")
 # Also load annotation to add gene name
 
 library(rtracklayer)
-lncs <- import("/kimdata/zhuqin/celegans/lncQuant/ce.WS260.ncRNA/genes/genes.gtf")
+lncs <- import("../ce.WS260.ncRNA/genes/genes.gtf")
 
 tid <- sapply(rownames(CombinedMatrix), function(x) {
     print(x)
@@ -553,6 +553,11 @@ identical(rownames(new_t150_df), rownames(pData(eset)))
 
 #saveRDS(pData(eset), "data-raw/pData_archive/pData-190317.rds")
 pData(eset)$t150.lineages <- new_t150_df$t150.lineages
+
+# Wipe annotation before t250
+early_cidx <- which(pData(eset)$raw.embryo.time <= 250)
+pData(eset)$combine_lineage[early_cidx] <- "unannotated"
+
 # Write over combined lineages
 pData(eset)$combine_lineage[which(pData(eset)$t150.lineages!="unannotated")] <- pData(eset)$t150.lineages[which(pData(eset)$t150.lineages!="unannotated")]
 
@@ -561,6 +566,7 @@ pData(eset)$combine_lineage[which(pData(eset)$t150.lineages!="unannotated")] <- 
 # Post submission update: NewLineageAnnots_post_t150_updates4.rda
 load("data-raw/postsub_update/NewLineageAnnots_post_t150_updates4.rda")
 new_lin_df <- r_data$cmeta$df
+new_lin_df$NewLineage[which(new_lin_df$NewLineage == "ALM_PLM cluster")] <- "unannotated"
 nrow(new_lin_df)
 
 identical(rownames(new_lin_df), colnames(eset))
@@ -595,7 +601,7 @@ lin_correct <- lin_correct[order(lin_correct$New_name),]
 write.csv(lin_correct, paste0("data-raw/postsub_update/lineage_name_resorted.csv"))
 
 pData(eset)$combine_lineage <- lin_sorted
-sum(pData(eset)$combine_lineage != "unannoated")
+sum(pData(eset)$combine_lineage != "unannotated")
 saveRDS(pData(eset), "data-raw/pData_archive/pData-190417_updated.rds")
 saveRDS(eset, "inst/app/data/eset.rds")
 

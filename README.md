@@ -68,6 +68,11 @@ FAQ
     git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
     ```
 
+* Q: Can I use VisCello to explore my own data?
+    
+  A: Yes. Please use the general version: https://github.com/qinzhu/VisCello and kindly cite VisCello if you use it for publication.
+  
+
 Cite VisCello
 -------------------------
 

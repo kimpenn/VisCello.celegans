@@ -111,6 +111,8 @@ function(input, output, session) {
                         showcols_advanced = elin_cols_advanced,
                         tabset = "lin"
     )
+    
+    callModule(tree_server, id = "lin")
 
     observe({
         req(rval_ct$mclass)

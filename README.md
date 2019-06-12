@@ -17,7 +17,7 @@ Please follow protocol listed below to install:
 
 0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
 
-    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew).
+    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew or conda).
     
     Any system: Install R (>3.4 required) and latest bioconductor (code below, copy and paste inside R):
     
@@ -31,7 +31,7 @@ Please follow protocol listed below to install:
 1. In terminal copy paste followng line by line with return:
 
     ```
-    git lfs clone https://github.com/qinzhu/VisCello.git
+    git lfs clone https://github.com/qinzhu/VisCello.celegans.git
     R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
     ```
 
@@ -39,13 +39,13 @@ Please follow protocol listed below to install:
 
     ``` r
     install.packages("devtools") 
-    devtools::install_local("VisCello")
+    devtools::install_local("VisCello.celegans")
     ```
 
     Now VisCello is ready to go! To launch Viscello, in R:
 
     ``` r
-    library(VisCello)
+    library(VisCello.celegans)
     cello()
     ```
 
@@ -54,12 +54,18 @@ FAQ
 
 * Q: I see error in R complaining: "Error in readRDS("data/eset.rds"): unknown input format", what should I do?
     
-    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. Example code using brew:
+    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. Example code using brew or conda:
     
     ```
     brew install git-lfs
     git lfs install
-    git-lfs clone https://github.com/qinzhu/VisCello.git
+    git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
+    ```
+    
+    ```
+    conda install -c conda-forge git-lfs
+    git lfs install
+    git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
     ```
 
 Cite VisCello

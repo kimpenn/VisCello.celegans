@@ -10,19 +10,21 @@ function() {
     fluidPage(
         div(style="padding: 1px 0px; width: '100%'",
             titlePanel(
-                title="", windowTitle="VisCello: C.elegans Embryogenesis Visualizer"
+                title="", windowTitle="VisCello: C. elegans Embryogenesis Visualizer"
             )
         ),
+        tags$head(tags$style(HTML("body{ background: #F7F7F7; }"))),
+        #tags$head(tags$style(type="text/css", ".container-fluid {  max-width: 1500px; /* or 950px */}")),
         navbarPage(
     title = div(
-        "C.elegans Embryogenesis",
+        "C. elegans Embryogenesis",
         div(
             id = "sys_control",
             dropdownButton(
                 inputId="load_state_dropdown",
                 actionButton("exit_app","Exit App", icon = icon("power-off"), width = "115px", class = "btn-primary", onclick = "setTimeout(function(){window.close();}, 100); "),
                 tags$br(),
-                fluidRow(column(12,downloadButton("state_save_sc","Save State", icon = icon("save"),class = "btn_leftAlign btn-primary", style="width: 115px"))),
+                fluidRow(column(12,downloadButton("state_save_sc","Save State", icon = icon("save"),class = "btn-primary", style="float:left;width: 115px"))),
                 tags$br(),
                 fileInput2('uploadState', NULL, buttonLabel = "Load State", width = "50px", accept = ".rda"),
                 uiOutput("refreshOnUpload"),
@@ -72,6 +74,10 @@ function() {
         "Early Lineage",
         explorer_ui("early")
     ),
+    tabPanel(
+        "Lineage Tree",
+        tree_ui("lin")
+    ), 
     tabPanel(
         "Differential Expression",
         de_ui("cel")

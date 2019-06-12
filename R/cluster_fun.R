@@ -2,10 +2,10 @@
 
 
 
-# Function for computing cluster
+# Function for computing cluster, adapted from monocle package
 #' @export
 louvain_clus <- function (data, k = 20, weight = F, louvain_iter = 1, resolution = NULL,
-                          random_seed = 0L, verbose = F, ...)
+                          random_seed = 0L, verbose = F, return_all = F, ...)
 {
     extra_arguments <- list(...)
     cell_names <- row.names(data)
@@ -117,8 +117,13 @@ louvain_clus <- function (data, k = 20, weight = F, louvain_iter = 1, resolution
     V(g)$names <- as.character(V(g))
     #return(list(g = g, relations = relations, distMatrix = distMatrix,
     #            coord = coord, edge_links = edge_links, optim_res = optim_res))
-    return(factor(igraph::membership(optim_res)))
+    if(return_all) {
+        return(optim_res)
+    } else {
+        return(factor(igraph::membership(optim_res)))
+    }
 }
+
 
 #' @export
 dens_clus<-function(tsne_data, rho_threshold=5, delta_threshold=10, peaks=NULL){
@@ -130,7 +135,4 @@ dens_clus<-function(tsne_data, rho_threshold=5, delta_threshold=10, peaks=NULL){
                                             peaks = peaks)
     return(factor(dataClust$clusters))
 }
-
-
-
 

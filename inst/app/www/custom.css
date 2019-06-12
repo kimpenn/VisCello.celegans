@@ -6,6 +6,12 @@
     float:right;
     margin: 6px;
 }
+
+.btn_leftAlign{
+    float:left;
+    margin: 6px;
+}
+
  #exit_btn{
      position: fixed;
      right: 10px;
@@ -71,6 +77,12 @@ border-color: #2c3e50
   appearance: none;
   background-color:#ffffff;
 }
+
+
+.form-control{
+    height:30px;
+}
+
 
 
 

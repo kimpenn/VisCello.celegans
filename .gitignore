@@ -3,5 +3,4 @@
 .RData
 .Ruserdata
 data-raw/*
-!data-raw/*.R
 .DS_Store

@@ -357,3 +357,41 @@ modalTriggerButton = function(inputId, target, label, icon = NULL, type = "butto
     }
 }
 
+
+
+
+
+#' #' Function modified from shiny, allow adding class
+#' selectizeInput2 <-function (inputId, ..., options = NULL, width = NULL) 
+#' {
+#'     shiny:::selectizeIt(inputId, selectInput2(inputId, ..., selectize = FALSE, 
+#'                                      width = width), options)
+#' }
+#' 
+
+#' #' #' Function modified from shiny, allow adding class
+#' selectInput2 <- function (inputId, label, choices, selected = NULL, multiple = FALSE, 
+#'           selectize = TRUE, width = NULL, size = NULL, class = NULL) 
+#' {
+#'     selected <- restoreInput(id = inputId, default = selected)
+#'     choices <- shiny:::choicesWithNames(choices)
+#'     if (is.null(selected)) {
+#'         if (!multiple) 
+#'             selected <- shiny:::firstChoice(choices)
+#'     }
+#'     else selected <- as.character(selected)
+#'     if (!is.null(size) && selectize) {
+#'         stop("'size' argument is incompatible with 'selectize=TRUE'.")
+#'     }
+#'     selectTag <- tags$select(id = inputId, class = if (!selectize) 
+#'         "form-control", size = size, shiny:::selectOptions(choices, selected))
+#'     if (multiple) 
+#'         selectTag$attribs$multiple <- "multiple"
+#'     res <- div(class = paste("form-group shiny-input-container", class), style = if (!is.null(width)) 
+#'         paste0("width: ", validateCssUnit(width), ";"), shiny:::controlLabel(inputId, 
+#'                                                                      label), div(selectTag))
+#'     if (!selectize) 
+#'         return(res)
+#'     selectizeIt(inputId, res, NULL, nonempty = !multiple && !("" %in% 
+#'                                                                   choices))
+#' }

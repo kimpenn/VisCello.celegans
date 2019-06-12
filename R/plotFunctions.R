@@ -63,15 +63,15 @@ get_numeric_bin_color <-function (bins, palette = "RdYlBu", maxCol = 9)
 
 #' @export
 numeric_color_opt <- function() {
-    allowed_pals <- c('blue_green_gold', 'black_red_gold', 'black_red', 'red_yellow', 'black_yellow', 'black_yellow_gold' , 'rainbow2', 'rainbow', 'gg_color_hue', 'RdOgYl', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno', 'grey&red')
+    allowed_pals <- c('blue_green_gold', 'black_red_gold', 'black_red', 'red_yellow', 'black_yellow', 'black_yellow_gold' , 'rainbow2', 'rainbow', 'gg_color_hue', 'RdOgYl', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno', 'grey&red','spectral2')
     return(allowed_pals)
 }
 
 #' @export
 get_numeric_color <- function(palette = NULL) {
     if(is.null(palette)) stop("please specify a palette")
-    allowed_pals <- numeric_color_opt()
-    if(!palette %in% allowed_pals) stop(paste0("Please specify one of '", paste(allowed_pals, collapse = "', '"), "'."))
+    #allowed_pals <- numeric_color_opt()
+    #if(!palette %in% allowed_pals) stop(paste0("Please specify one of '", paste(allowed_pals, collapse = "', '"), "'."))
     if(palette %in% get_brewer_set(c("sequential", "diverging"))) {
         colorRampPalette(rev(RColorBrewer::brewer.pal(9,palette)))(100)
     } else if(palette %in% list("viridis" = "viridis", "magma" = "magma", "plasma" = "plasma", "inferno" = "inferno")) {
@@ -84,6 +84,8 @@ get_numeric_color <- function(palette = NULL) {
         colorRampPalette(rev(rainbow(10)))(100)
     } else if(palette == "rainbow2") {
         c("#CCCCCCCC",rainbow(500)[50:500])
+    } else if(palette == "rainbow3") {
+        c("#CCCCCCCC",rainbow(500)[100:500])
     } else if(palette == "grey&red") {
         c("grey", "red")
     } else if(palette == "RdOgYl") {
@@ -102,6 +104,8 @@ get_numeric_color <- function(palette = NULL) {
         c("grey85",  "black", "yellow")
     } else if(palette == "black_yellow_gold") {
         c("grey85",  "black", "yellow", "gold")
+    } else if(palette == "spectral2") {
+        c("#CCCCCCCC",rev(get_factor_color(1:11,"Spectral")))
     }
 }
 
@@ -159,7 +163,7 @@ get_brewer_set <- function(palette = c("sequential", "diverging", "qualitative")
 
 #' @export
 visualize_gene_expression <- function (gene_values, gene_probes, projection, limits = c(0, 10), marker_size = 0.1,
-                                       title = NULL, ncol = NULL, title_size = 10, alpha=NULL, alpha_manual=NULL, binary = F, pal="rainbow2", na.col = "lightgrey", legend = T, legend_name = "Expression")
+                                       title = NULL, ncol = NULL, title_size = 10, binary = F, pal="rainbow2", na.col = "lightgrey", legend = T, legend_name = "Expression")
 {
     colnames(gene_values) <- gene_probes
     projection_names <- colnames(projection)
@@ -171,14 +175,11 @@ visualize_gene_expression <- function (gene_values, gene_probes, projection, lim
         proj_gene_melt <- melt(proj_gene, id.vars = colnames(projection))
         idx_region <- which(proj_gene_melt$value > 0)
         use_color <- get_numeric_color(pal)
-        proj_gene_melt$alpha <- rep(alpha, length(gene_probes))
         #assign("proj_gene_melt", proj_gene_melt, env=.GlobalEnv)
-        p <- ggplot(proj_gene_melt, aes_string(x=colnames(projection)[1], y=colnames(projection)[2], alpha="alpha")) +
+        p <- ggplot(proj_gene_melt, aes_string(x=colnames(projection)[1], y=colnames(projection)[2], colour = "value")) +
             geom_point(size=marker_size,color=na.col,show.legend=FALSE, stroke=0) +
-            geom_point(data=proj_gene_melt[idx_region,], aes_string(x=colnames(projection)[1], y=colnames(projection)[2], colour = "value"), size = marker_size, stroke=0)+
-            scale_alpha_manual(values=alpha_manual) +
-            guides(alpha=F)
-
+            geom_point(data=proj_gene_melt[idx_region,], aes_string(x=colnames(projection)[1], y=colnames(projection)[2]), size = marker_size, stroke=0)
+        
         p <- p +
             #facet_wrap(~variable, ncol=ncol) +
             scale_color_gradientn(colours = use_color) +
@@ -217,22 +218,19 @@ visualize_gene_expression <- function (gene_values, gene_probes, projection, lim
         names(use_color) <- c(lev[1:(length(lev)-1)], "Not Expressed")
 
         proj_gene <- data.frame(cbind(projection, gene_values))
-        proj_gene$alpha <- alpha
         idx_region <- which(proj_gene$expr_stats != "Not Expressed")
-        p = ggplot(proj_gene,  aes_string(x=colnames(projection)[1], y=colnames(projection)[2], alpha="alpha")) +
+        p = ggplot(proj_gene,  aes_string(x=colnames(projection)[1], y=colnames(projection)[2])) +
             geom_point(size=marker_size,color=na.col,show.legend=FALSE, stroke=0) +
             geom_point(data=proj_gene[idx_region,], aes_string(x=colnames(projection)[1], y=colnames(projection)[2], colour = "expr_stats"), size = marker_size, stroke=0)+
             scale_color_manual(values = use_color)
 
         p = p +
-            scale_alpha_manual(values=alpha_manual) +
             monocle:::monocle_theme_opts() +
             theme(legend.position = c("top"))
         if(legend) {
-            p <- p+ guides(color = guide_legend(title = "Expression:", override.aes = list(size = 4)),
-                                      alpha = F)
+            p <- p+ guides(color = guide_legend(title = "Expression:", override.aes = list(size = 4)))
         } else {
-            p <- p + guides(color = F, alpha = F)
+            p <- p + guides(color = F)
         }
     }
     return(p)
@@ -345,8 +343,10 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
         proj[[group.by]][proj[[group.by]] < limits[1]] <- limits[1]
         proj[[group.by]][proj[[group.by]] > limits[2]] <- limits[2]
     }
-    pp<-ggplot(proj, aes_string(plot_col[1],plot_col[2])) +
-        geom_point(aes_string(color=group.by, alpha="alpha"), size=size, stroke = 0) +
+    idx_region <- which(proj[[group.by]] != "unannotated" & !is.na(proj[[group.by]]))
+    pp<-ggplot(proj, aes_string(color=group.by)) +
+        geom_point(aes_string(plot_col[1],plot_col[2], alpha="alpha"), size=size,color=na.col,show.legend=FALSE, stroke=0) +
+        geom_point(data=proj[idx_region,],aes_string(plot_col[1],plot_col[2], alpha="alpha"), size=size, stroke = 0) +
         scale_alpha_manual(values=alpha_manual) +
         theme_bw() +
         ggtitle(plot_title) +
@@ -359,8 +359,8 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
         if(onplotAnnot == "text") {
             pp<- pp + geom_text(
                 aes_string(
-                    label = group.by,
-                    color = group.by
+                    x = plot_col[1], y= plot_col[2], 
+                    label = group.by
                 ),
                 size = onplotAnnotSize,
                 nudge_x = nudge_x,
@@ -370,8 +370,10 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
         } else {
             pp<- pp + geom_label(
                 aes_string(
+                    x=plot_col[1],y=plot_col[2], 
                     label = group.by
                 ),
+                color = "black",
                 size = onplotAnnotSize,
                 nudge_x = nudge_x,
                 nudge_y = nudge_y,
@@ -471,7 +473,7 @@ feature_plot <- function(df, selected_gene, group.by = "sample", meta = NULL, pa
 }
 
 #' @export
-plotGraph <- function(g, color.by=NULL, pal=NULL, label=NULL, alpha = NULL, type = NULL, background="grey20", border.size = 0.1, node.text.size = 1, legend.title = waiver()) {
+plotGraph <- function(g, color.by=NULL, pal=NULL, label=NULL, alpha = NULL, type = NULL, background="grey20", border.size = 0.1, node.text.size = 1, legend.title = waiver(), na_color = "grey20") {
     p1<-ggraph(g,layout = 'partition', circular = TRUE) +
         geom_node_arc_bar(aes_string(fill = color.by, alpha=alpha), size = border.size) +
         theme_graph(background = background, text_colour = 'white') +
@@ -482,7 +484,7 @@ plotGraph <- function(g, color.by=NULL, pal=NULL, label=NULL, alpha = NULL, type
     }
     
     if(type == "numeric") {
-        p1<-p1+scale_fill_gradientn(colours = get_numeric_color(pal), na.value="grey20")
+        p1<-p1+scale_fill_gradientn(colours = get_numeric_color(pal), na.value=na_color)
     } else{
         unique_factor <- unique(as.data.frame(g)[[color.by]])
         p1<-p1+scale_fill_manual(values = pal, na.value="grey20")

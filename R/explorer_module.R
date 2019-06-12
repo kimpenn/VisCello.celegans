@@ -8,7 +8,7 @@ explorer_ui <- function(id) {
 
 #' @export
 explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL, showcols_basic = NULL, showcols_advanced = NULL, tabset = "ct"){
-    ev <- reactiveValues(list = NULL, sample=NULL, vis=NULL, colorBy_state = "less", cells = NULL, cell_source = NULL)
+    ev <- reactiveValues(list = NULL, sample=NULL, vis=NULL, cells = NULL, cell_source = NULL)
     # Reactive variable storing all basic plot parameters
     pvals <- reactiveValues()
     
@@ -36,7 +36,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                         )
                        ),
                        uiOutput(ns("proj_colorBy_ui")),
-                       selectizeInput(ns("gene_list"), "Search Gene:", choices = gene_tbl, multiple = T),
+                       selectizeInput(ns("gene_list"), "Search gene:", choices = gene_tbl, multiple = T),
                        uiOutput(ns("plot_scalecolor_ui")),
                        uiOutput(ns("data_highlight"))
                    ),
@@ -44,8 +44,13 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             ),
             column(8,
                    fluidRow(
-                       column(6),
-                       column(6,
+                       column(8,
+                              uiOutput(ns("lineage_tree_view")),
+                              uiOutput(ns("left_tree_root_ui")),
+                              uiOutput(ns("right_tree_root_ui")),
+                              uiOutput(ns("top_tree_root_ui"))
+                       ),
+                       column(4,
                               circleButton(ns("plot_config_reset"), icon = icon("undo"), size = "xs", status = "danger btn_rightAlign"),
                               shinyBS::bsTooltip(
                                   ns("plot_config_reset"),
@@ -65,7 +70,8 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                               circle = T, label ="Download Plot", tooltip=T, right = T,
                                               icon = icon("download"), size = "xs", status="success", class = "btn_rightAlign"),
                               uiOutput(ns("g_limit_ui")),
-                              uiOutput(ns("v_limit_ui"))
+                              uiOutput(ns("v_limit_ui")),
+                              uiOutput(ns("tree_configure_ui"))
                        )
                    ),
                    uiOutput(ns("plot_ui")) %>% withSpinner()
@@ -77,13 +83,13 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             wellPanel(
                 fluidRow(
                     column(3, uiOutput(ns("bp_sample_ui"))),
-                    column(3, selectizeInput(ns("bp_gene"), "Search gene:", choices = c("No gene selected"="No gene selected", gene_tbl), selected = "No gene selected")),
+                    column(3, selectizeInput(ns("bp_gene"), "Search gene:", choices = c("No gene selected"="No gene selected", gene_tbl))),
                     column(3, uiOutput(ns("bp_colorBy_ui"))),
                     column(3, selectInput(ns("bp_log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Raw count" = "raw")))
                 ),
                 uiOutput(ns("bp_include_ui")),
                 fluidRow(
-                    column(9, tags$p("Hint: Select a gene to visualize its expression across cell types/lineages.")),
+                    column(9, tags$p("Hint: Select a gene to get its summarized expression across cell types/lineages.")),
                     column(3, actionLink(ns("bp_reset"), "Clear selected", class = "btn_rightAlign"))
                 )
             ),
@@ -145,8 +151,8 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 )
             ),
             DT::dataTableOutput(ns("sm_tbl")) %>% withSpinner(),
-            downloadButton(ns("download_sm_tbl"), "Download table", class = "btn_rightAlign"),
-            hmap_ui
+            downloadButton(ns("download_sm_tbl"), "Download table", class = "btn_rightAlign")
+            #hmap_ui
         )
         
         cui <- tagList(
@@ -202,15 +208,16 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     sui
                 ),
                 tabPanel(
-                    value = "mui",
-                    tags$b("Marker Imaging"),
-                    mui
-                ),
-                tabPanel(
                     value = "lui",
                     tags$b("Lineage Markers"),
                     tags$br(),
+                    tags$li("Table below shows markers used for annotation."),
                     lui
+                ),
+                tabPanel(
+                    value = "mui",
+                    tags$b("Marker Imaging"),
+                    mui
                 )
             )
         } else if(tabset == "ct") {
@@ -235,6 +242,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     value = "cui",
                     tags$b("Cell Type Markers"),
                     tags$br(),
+                    tags$li("Table below shows markers used for annotation."),
                     cui
                 )
             )
@@ -246,24 +254,55 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     output$input_sample_ui <- renderUI({
         ns <- session$ns
         sample_names <- names(ev$list)
-        selectInput(ns("input_sample"), tags$div("Choose Sample:", pivot_help_UI(ns("choose_sample_info"), title = NULL, label = NULL, icn="question-circle", type = "link", tooltip = F, style = "padding-left:10px;")), choices=sample_names)
+        if(tabset == "lin") sample_names <- c(elin_sets_basic, names(ev$list)[!names(ev$list) %in% names(elist)], "More options..." = "moreop")
+        selectInput(ns("input_sample"), tags$div("Choose cell subset:", pivot_help_UI(ns("choose_sample_info"), title = NULL, label = NULL, icn="question-circle", type = "link", tooltip = F, style = "padding-left:10px;")), choices=sample_names)
     })
 
+    
+    observeEvent(input$input_sample, {
+        if(tabset == "lin") {
+            sample_names <- names(ev$list)
+            if(input$input_sample == "lessop") {
+                sample_names <- c(elin_sets_basic, names(ev$list)[!names(ev$list) %in% names(elist)], "More options..." = "moreop")
+                updateSelectInput(session, "input_sample", choices = sample_names)
+            } else if(input$input_sample == "moreop") {
+                sample_names <- c(names(ev$list), "Less options..." = "lessop")
+                updateSelectInput(session, "input_sample", choices = sample_names)
+            }
+        }
+    })
+    
+    
     output$proj_type_ui <- renderUI({
         ns <- session$ns
         req(ev$vis)
         options <- names(ev$vis@proj)
         if("PCA" %in% options) options <- c(options[!options == "PCA"], "PCA-2D", "PCA-3D")
         tagList(
-            selectInput(ns("proj_type"), "Choose Projection:", choices=options),
+            selectInput(ns("proj_type"), "Choose projection:", choices=options),
             conditionalPanel("1==0", textInput(ns("proj_type_I"), NULL, value = ev$sample))
         )
     })
 
     output$proj_colorBy_ui <- renderUI({
         ns = session$ns
-        selectInput(ns("proj_colorBy"), "Color By", choices = c(showcols_basic, ev$meta_custom, "More options..."="moreop"))
+        selectInput(ns("proj_colorBy"), "Color by", choices = c(showcols_basic, ev$meta_custom, "More options..."="moreop"))
     })
+    
+    
+    
+    observeEvent(input$proj_colorBy, {
+        if(input$proj_colorBy == "lessop") {
+            updateSelectInput(session, "proj_colorBy", "Color By", choices = c(showcols_basic, ev$meta_custom, "More options..."="moreop"))
+        } else if(input$proj_colorBy == "moreop") {
+            updateSelectInput(session, "proj_colorBy", "Color By", choices = c(showcols_advanced, ev$meta_custom, "Less options..."="lessop"))
+        } else if(input$proj_colorBy != "gene.expr") {
+            if(!is.null(input$gene_list)) {
+                updateSelectInput(session, "gene_list", selected = "")
+            }
+        }
+    })
+
 
     output$plot_scalecolor_ui <- renderUI({
         ns = session$ns
@@ -274,12 +313,107 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         } else if(!input$proj_colorBy %in% ev$factor_cols){
             if(input$proj_colorBy %in% pmeta_attr$meta_id && !is.null(pmeta_attr$dscale)) {
                 default_scale <- pmeta_attr$dscale[which(pmeta_attr$meta_id==input$proj_colorBy)]
-            } 
-            if(is.na(default_scale)) default_scale <- NULL
+            } else {
+                default_scale <- NULL
+            }
             selectInput(ns("log_transform_val"), "Data scale", choices=list("Log10"="log10", "Identity" = "identity"), selected = default_scale)
         } else {
             return()
         }
+    })
+    
+    output$lineage_tree_view <- renderUI({
+        ns <- session$ns
+        req(input$proj_colorBy)
+        #if(input$proj_colorBy %in% c("lineage", "gene.expr", "raw.embryo.time")) {
+        if(input$proj_colorBy %in% c("lineage", "gene.expr")) {
+            div(checkboxGroupButtons(
+                inputId = ns("tree_view"), label = NULL, 
+                size = "xs", width = "100px",
+                choices = c("Lineage Tree"), 
+                justified = TRUE, status = "info",
+                checkIcon = list(yes = icon("record", lib = "glyphicon"), no = icon("ban-circle", lib = "glyphicon"))
+            ),style = "float:left;margin-top:5px;")  
+        } else {
+            ev$tree_view <- F
+            return()
+        }
+    })
+    
+    observe({
+        if(!is.null(input$tree_view)){
+            ev$tree_view <- T
+        } else {
+            ev$tree_view <- F
+        }
+    })
+    
+    output$tree_configure_ui <- renderUI({
+        ns <- session$ns
+        req(ev$tree_view)
+        dropdownButton2(inputId=ns("tree_configure"),
+                        fluidRow(
+                            column(6, numericInput(ns("tree_time_cut"), "Birth time cut", min = 10, value = 300, step = 10)),
+                            column(6, selectInput(ns("tree_label_style"), "Label style", choices = c("No label" = "none", "Text" = "text", "Label" = "label")))
+                        ),
+                        fluidRow(
+                            column(6, numericInput(ns("tree_label_cut"), "Label time cut", min = 10, value = 80, step = 10)),
+                            column(6, numericInput(ns("tree_label_size"), "Label size", min = 1, value = 3, step = 1))
+                        ),
+                        fluidRow(
+                            column(6, numericInput(ns("tree_edge_size"), "Edge size", min = 0.1, value = 1, step = 0.1)),
+                            column(6, numericInput(ns("tree_tip_size"), "Tip size", min = 0, value = 0, step = 1))
+                        ),
+                        fluidRow(
+                            column(6, checkboxInput(ns("tree_filter_na"), tags$b("Filter unmapped leaves"), value = F)),
+                            column(6, numericInput(ns("tree_height"), "Tree height (scale)", min=1/10, max = 1, value = 1/4, step=.1))
+                        ),
+                        conditionalPanel("1==0", textInput(ns("tree_colorBy_fake"), NULL, value = input$proj_colorBy)),
+                        circle = T, label ="Configure Tree", tooltip=T, right = T,
+                        icon = icon("grain", lib = "glyphicon"), size = "xs", status="info", class = "btn_rightAlign")
+    })
+    
+    
+    output$left_tree_root_ui <- renderUI({
+        req(ev$tree_view)
+        ns <- session$ns
+        choices <- as.list(c("No left tree", avail_nodes[1:101]))
+        names(choices) <- choices
+        tagList(
+            tags$p("L:", style="display:inline-block;float:left;margin-top:7px;margin-left:5px;"),
+            tags$select(id=ns("left_tree_root"),
+                        class = "customDrop",
+                        style = "display:inline-block;float:left;width:80px;margin-top:7px;margin-left:3px;",
+                        shiny:::selectOptions(choices,selected = "ABa"))
+        )
+    })
+    
+    output$right_tree_root_ui <- renderUI({
+        req(ev$tree_view)
+        ns <- session$ns
+        choices <- as.list(c("No right tree", avail_nodes[1:101]))
+        names(choices) <- choices
+        tagList(
+            tags$p("R:", style="display:inline-block;float:left;margin-top:7px;margin-left:5px;"),
+            tags$select(id=ns("right_tree_root"),
+                        class = "customDrop",
+                        style = "display:inline-block;float:left;width:80px;margin-top:7px;margin-left:3px;",
+                        shiny:::selectOptions(choices,selected = "ABp"))
+        )
+    })
+    
+    output$top_tree_root_ui <- renderUI({
+        req(ev$tree_view)
+        ns <- session$ns
+        choices <- as.list(c("No top tree", avail_nodes[1:101]))
+        names(choices) <- choices
+        tagList(
+            tags$p("T:", style="display:inline-block;float:left;margin-top:7px;margin-left:5px;"),
+            tags$select(id=ns("top_tree_root"),
+                        class = "customDrop",
+                        style = "display:inline-block;float:left;width:80px;margin-top:7px;margin-left:3px;",
+                        shiny:::selectOptions(choices,selected = "P1"))
+        )
     })
     
     output$plot_configure_ui <- renderUI({
@@ -288,12 +422,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         dropdownButton2(inputId=ns("plot_configure"),
                         fluidRow(
-                            column(6, numericInput(ns("marker_size"), "Point Size", min = 0.1, value = 1, step = 0.1)),
-                            column(6, numericInput(ns("text_size"), "Text Size", min = 1, value = 3, step = 1))
+                            column(6, numericInput(ns("marker_size"), "Point size", min = 0.1, value = 1, step = 0.1)),
+                            column(6, numericInput(ns("text_size"), "Text size", min = 1, value = 3, step = 1))
                         ),
                         fluidRow(
                             column(6, selectInput(ns("color_pal"), "Palette", choices=factor_color_opt())),
-                            column(6, selectInput(ns("legend_type"), "Legend", choices=c("Color Legend" = "l", "Onplot Label" = "ol", "Onplot Text" = "ot", "Legend + Label" = "lol", "Legend + Text" = "lot", "None" = "none"), selected = "ol"))
+                            column(6, selectInput(ns("legend_type"), "Legend", choices=c("Color legend" = "l", "Onplot label" = "ol", "Onplot text" = "ot", "Legend + Label" = "lol", "Legend + Text" = "lot", "None" = "none"), selected = "ot"))
                         ),
                         fluidRow(
                             column(6, numericInput(ns("show_ploth"), "Height (resize window for width)", min=1, value = 7, step=1)),
@@ -357,12 +491,20 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     output$plot2d_tooltip <- renderUI({
         ns <- session$ns
         hover <- input$plot2d_hover
-        #assign("hover", hover, env=.GlobalEnv)
-        x <- nearPoints(pvals$proj, hover, maxpoints = 1)
+        x <- nearPoints(pvals$proj, hover, xvar = pvals$plot_col[1], yvar = pvals$plot_col[2], maxpoints = 1)
+        # If tree view, show lineage
+        if(ev$tree_view && !nrow(x)){
+            x <- nearPoints(bind_rows(pvals$coords[2:4]), hover, xvar = "x", yvar = "y", maxpoints = 1)
+            show_col <- "label"
+        } else {
+            show_col <- pvals$proj_colorBy
+        }
+        
         req(nrow(x) > 0)
-        if(pvals$plot_class != "expression" || is.null(ev$gene_values)) {
-            y <- as.character(x[[pvals$proj_colorBy]])
-            tip <- paste0("<b>", pvals$legend_title, ": </b>", y, "<br/>")
+        if(pvals$plot_class != "expression" || is.null(ev$gene_values) || show_col == "label") {
+            y <- as.character(x[[show_col]])
+            if(show_col == "label") tt <-"Lineage" else tt <- pvals$legend_title
+            tip <- paste0("<b>",tt, ": </b>", y, "<br/>")
         } else {
             y <- round(ev$gene_values[rownames(x),, drop=F],3)
             tip <- paste0(sapply(1:ncol(y), function(i) paste0("<b>", colnames(y)[i], ": </b>", y[[i]], "<br/>")), collapse = "")
@@ -385,7 +527,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         #print(paste0("highlight:", input$proj_colorBy))
         input$gene_list
         input$log_transform_val
-        
+        input$choose_cell_reset
         ns <- session$ns
         proj_colorBy_dh <- input$proj_colorBy # This is necessary!!! See explanation in the observer
         ui1 <- NULL
@@ -396,7 +538,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 factors <- as.character(levels(factor(ev$meta[[input$proj_colorBy]])))
             }
             names(factors) <- factors
-            ui1 <- selectInput(ns("factor_compo"), "Choose Cells:", choices = factors, multiple = T)
+            tip <- shinyBS::bsTooltip(
+                ns("choose_cell_reset"),
+                title = "Reset option",
+                options = list(container = "body", delay = list(show=1000, hide=3000))
+            )
+            ui1 <- selectInput(ns("factor_compo"), tags$div("Choose cells:", tipify(actionLink(ns("choose_cell_reset"), label = NULL, icon = icon("remove-sign", lib = "glyphicon"), style = "padding-left:10px;"), title = "Reset option")), choices = factors, multiple = T)
         } else if(input$proj_colorBy != "gene.expr") {
             num_range <- range(ev$value)
             num_range[1] <- floor_dec(num_range[1],2)
@@ -449,20 +596,6 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
 
     observeEvent(input$gene_list, {
         updateSelectInput(session, "proj_colorBy", selected = "gene.expr")
-    })
-
-    observeEvent(input$proj_colorBy, {
-        if(input$proj_colorBy == "lessop") {
-            updateSelectInput(session, "proj_colorBy", "Color By", choices = c(showcols_basic, ev$meta_custom, "More options..."="moreop"))
-            ev$colorBy_state <- "more"
-        } else if(input$proj_colorBy == "moreop") {
-            updateSelectInput(session, "proj_colorBy", "Color By", choices = c(showcols_advanced, ev$meta_custom, "Less options..."="lessop"))
-            ev$colorBy_state <- "less"
-        } else if(input$proj_colorBy != "gene.expr") {
-            if(!is.null(input$gene_list)) {
-                updateSelectInput(session, "gene_list", selected = "")
-            }
-        }
     })
 
 
@@ -523,8 +656,8 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             
             if(input$proj_colorBy %in% c("cell.type", "cell.subtype")) { 
                 factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 10)) 
-            } else if(input$proj_colorBy %in% c("t250.lineages", "temp.ABala.250", "subtype.linage")) {
-                factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 10)) # Lower?
+            } else if(input$proj_colorBy %in% c("lineage")) {
+                factor_breaks <- names(which(table(proj[[input$proj_colorBy]]) >= 5)) # Lower?
             } else {
                 factor_breaks <- names(factor_color)
             }
@@ -632,7 +765,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         } else if(input$log_transform_gene == "raw") {
             ev$gene_values <- t(as.matrix(exprs(eset)[input$gene_list,ev$vis@idx, drop=F]))
         }
-        #assign("ev", reactiveValuesToList(ev), env =.GlobalEnv)
+        #sassign("ev", reactiveValuesToList(ev), env =.GlobalEnv)
     })
 
     
@@ -656,8 +789,6 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                           marker_size = pvals$marker_size, ncol=1,
                                           binary = ifelse(ncol(pvals$gene_values) == 1, F, T),
                                           pal=pvals$color_pal,
-                                          alpha =pvals$proj$alpha,
-                                          alpha_manual = c("f"=1,"t"=pvals$alpha_level),
                                           na.col = "lightgrey",
                                           legend_name = ifelse(pvals$log_transform_gene == "log2", 
                                                                paste0(colnames(pvals$gene_values), " expression\n(log normalized)"), 
@@ -667,19 +798,110 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
 
     pp1 <- reactive({
         req(length(pvals$plot_col) == 2, pvals$plot_class)
+        input$tree_view
         assign("pvals", reactiveValuesToList(pvals),env=.GlobalEnv)
+
         if(pvals$plot_class == "factor") {
-            pp_factor()
+            p <- pp_factor()
         } else if(pvals$plot_class == "numeric") {
-            pp_numeric()
+            p <- pp_numeric()
         } else {
-            pp_gene()
+            p <- pp_gene()
         }
+
+        if(ev$tree_view) {
+            req(input$tree_colorBy_fake == input$proj_colorBy)
+            req(input$tree_edge_size)
+            share_col = "lineage"
+            
+            if(input$tree_filter_na) {
+                tip_to_drop <- fortify(as.treedata(tree_tbl))%>% filter(isTip & is.na(lineage))
+                cur_tree<-tree_tbl %>% filter(!to %in% tip_to_drop$label)
+            } else {
+                cur_tree<-tree_tbl
+            }
+
+            show_lin <- names(which(table(pvals$proj$lineage) >= 5))
+            
+            if(input$proj_colorBy == "lineage") {
+                colorBy = share_col
+                cur_tree$lineage[which(!cur_tree$lineage %in% show_lin)] <- NA 
+            } else if(input$proj_colorBy == "gene.expr") {
+                colorBy <- "value"
+                cur_tree$value <- lin_sc_expr[colnames(pvals$gene_values),][match(cur_tree$to, colnames(lin_sc_expr))]
+            } 
+            # else if(input$proj_colorBy == "raw.embryo.time") {
+            #     cur_tree$raw.embryo.time <- cur_tree$br_time + min(80, cur_tree$lifetime/2) # Median time
+            #     colorBy <- "raw.embryo.time"
+            # }
+        
+            if(input$left_tree_root!="No left tree") {
+                left_tree <- make_lineage_ggtree(in_tree = cur_tree, root = input$left_tree_root, time.cut = input$tree_time_cut, color.annot = colorBy, branch.length='lifetime')
+            } else left_tree <- NULL
+            if(input$right_tree_root!="No right tree") {
+                right_tree <- make_lineage_ggtree(in_tree = cur_tree, root = input$right_tree_root, time.cut = input$tree_time_cut, color.annot = colorBy, branch.length='lifetime')
+            } else right_tree <- NULL
+            if(input$top_tree_root!="No top tree") {
+                top_tree <- make_lineage_ggtree(in_tree = cur_tree, root = input$top_tree_root, time.cut = input$tree_time_cut, color.annot = colorBy, branch.length='lifetime')
+            } else top_tree <- NULL
+            if(is.null(left_tree) && is.null(right_tree) && is.null(top_tree)) return(p + theme_void())
+
+            res <- make_tree_dimr(in.plot=p, proj=pvals$proj, left_tree = left_tree, right_tree = right_tree, top_tree = top_tree, 
+                                  colorBy = colorBy, tree.color = pvals$factor_color, 
+                                  label.time.cut = input$tree_label_cut, label.size = input$tree_label_size, 
+                                  edge.size = input$tree_edge_size, tip.size = input$tree_tip_size,
+                                  tree.h.scale = input$tree_height,
+                                  plot.link = NULL, shift.y.scale = 1/20, 
+                                  label.type = input$tree_label_style,
+                                  return_coords = T) 
+            isolate({
+                pvals$coords <- res$coords
+            })
+            p <- res$plot + theme_void()
+
+        } 
+            
+        return(p)
     })
 
-    output$plot2d <- renderPlot({
+    pp1_final <- reactive({
         req(pp1())
-        pp1()
+        if(ev$tree_view && length(ev$cells)){
+            share_col = "lineage"
+            proj=pvals$proj
+            colnames(proj)[c(1,2)] <- c("x","y")
+            area_selected <- ev$area
+            proj <- proj[, c("x","y", share_col)]
+            highlight_lin <- table(proj$lineage[rownames(proj) %in% ev$cells])
+            highlight_lin <- names(highlight_lin[highlight_lin >= 5])
+            proj_center <- proj %>% group_by_at(share_col) %>% summarize_at(c("x", "y"), median) %>%
+                filter(lineage %in% highlight_lin)
+            if(ev$cell_source=="plot selection" && !is.null(ev$area)) {
+                proj_center <- proj %>% filter(x>=ev$area$xmin & x<=ev$area$xmax & y>=ev$area$ymin & y<= ev$area$ymax) # Only highlight centers in selected region
+            }
+            
+            use_col <- c("x","y",share_col)
+            link_col <- c()
+            if(input$left_tree_root!="No left tree") {link_col <- c(link_col, "d1")}
+            if(input$right_tree_root!="No right tree") {link_col <- c(link_col, "d2")}
+            if(input$top_tree_root!="No top tree") {link_col <- c(link_col, "d3")}
+            if(!length(link_col)) return(pp1())
+            df_bind <- lapply(pvals$coords[link_col], function(x){
+                x[,use_col]
+            })
+            dd_tree <- bind_rows(df_bind) %>% filter(lineage %in% highlight_lin)
+            dd_tree$x2 <- proj_center$x[match(dd_tree[[share_col]], proj_center[[share_col]])]
+            dd_tree$y2 <- proj_center$y[match(dd_tree[[share_col]], proj_center[[share_col]])]
+            p <- pp1() +
+                geom_segment(aes(x = x, y=y, xend = x2, yend =y2), data=dd_tree, color='grey', alpha = .5, size = .5)
+        } else {
+            p <- pp1()
+        }
+        return(p)
+    })
+    
+    output$plot2d <- renderPlot({
+        req(pp1_final())
     })
 
     pp1_3d <- reactive({
@@ -687,7 +909,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         proj <- pvals$proj
         ds <- pvals$plot_col
         marker_size <- pvals$marker_size * 2
-        assign("pvals", reactiveValuesToList(pvals), env = .GlobalEnv)
+        #assign("pvals", reactiveValuesToList(pvals), env = .GlobalEnv)
         #alpha_manual <- c("f"=1,"t"=pvals$alpha_level)
         if(pvals$plot_class == "factor") {
             plotly::plot_ly(proj, x = as.formula(paste0("~", ds[1])), y = as.formula(paste0("~", ds[2])), z = as.formula(paste0("~", ds[3])),
@@ -725,6 +947,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
 
     output$plotly3d <- renderPlotly({
         req(pp1_3d())
+        assign("pp1_3d", pp1_3d(), env = .GlobalEnv)
         pp1_3d() %>% hide_legend()
     })
 
@@ -760,8 +983,8 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                            html = 'html'
             )
             if(fn_dev!='html') {
-                req(pp1())
-                ggsave(con, plot = pp1(), device = fn_dev, width = input$down_plotw, height = input$down_ploth)
+                req(pp1_final())
+                ggsave(con, plot = pp1_final(), device = fn_dev, width = input$down_plotw, height = input$down_ploth)
                 shut_device <- dev.list()[which(names(dev.list()) != "quartz_off_screen")]
                 if(length(shut_device)) dev.off(which = shut_device) # Make sure ggsave does not change graphic device
             } else {
@@ -843,7 +1066,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         wellPanel(
             class = "SidebarControl",
             fluidRow(
-                column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells chosen by", ev$cell_source), choices = list(
+                column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells"), choices = list(
                     "Zoom in to selected cells" = "zoom", 
                     "Name selected cell subset" = "addmeta",
                     "Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
@@ -855,7 +1078,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 "input.selectCell_goal == 'addmeta'", ns=ns,
                 fluidRow(
                     column(6,
-                           selectizeInput(ns("selectCell_meta_col"), "Meta Class", choices = ev$meta_custom, options=list(create=T), selected = meta_col_selected),
+                           selectizeInput(ns("selectCell_meta_col"), "Meta class", choices = ev$meta_custom, options=list(create=T), selected = meta_col_selected),
                            shinyBS::bsTooltip(
                                ns("selectCell_meta_col"),
                                title = "Type name and press enter to add a new meta class, delete it use the button on the right",
@@ -863,12 +1086,12 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                options = list(container = "body")
                            )),
                     column(6,
-                           tags$br(),actionButton(ns("MetaCol_delete"), "Delete Class", class = "btn-danger btn_leftAlign")
+                           tags$br(),actionButton(ns("MetaCol_delete"), "Delete class", class = "btn-danger btn_leftAlign")
                     )
                 ),
                 fluidRow(
-                    column(6, textInput(ns("selectCell_group_name"), "Name Subset", placeholder="e.g., group 1")),
-                    column(6, tags$br(),actionButton(ns("selectCell_add"), "Add Group", class = "btn-info btn_leftAlign"))
+                    column(6, textInput(ns("selectCell_group_name"), "Name subset", placeholder="e.g., group 1")),
+                    column(6, tags$br(),actionButton(ns("selectCell_add"), "Add group", class = "btn-info btn_leftAlign"))
                 )
             ),
             conditionalPanel(
@@ -889,7 +1112,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 "input.selectCell_goal == 'downcell' || input.selectCell_goal == 'downmeta'", ns=ns,
                 fluidRow(
                     column(12,
-                           downloadButton(ns("download_data"), "Download Data", class = "btn-primary btn_rightAlign")
+                           downloadButton(ns("download_data"), "Download data", class = "btn-primary btn_rightAlign")
                     )
                 )
             ),
@@ -900,7 +1123,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                            selectInput(ns("compdimr_type"), "Compute:", choices = list("UMAP-2D" = "UMAP-2D", "UMAP-3D" = "UMAP-3D", "PCA" = "PCA"))
                     ),
                     column(6,
-                           textInput(ns("compdimr_name"), "Sample name:", placeholder="e.g., Late Neurons")
+                           textInput(ns("compdimr_name"), "Subset name:", placeholder="e.g., Late Neurons")
                     )
                 ),
                 fluidRow(
@@ -937,6 +1160,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
              ev$cells <- rownames(pvals$proj)[which(pvals$proj[[plot_cols[1]]] >= area_selected$xmin & pvals$proj[[plot_cols[1]]] <= area_selected$xmax & 
                                                      pvals$proj[[plot_cols[2]]] >= area_selected$ymin & pvals$proj[[plot_cols[2]]] <= area_selected$ymax)]
              ev$cell_source <- "plot selection"
+             ev$area <- area_selected
          })
      })
      
@@ -989,9 +1213,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             rval$cells <- ev$cells
         }
         showNotification(paste("New meta class:",  rval$group_name, "added"), type="message", duration=10)
-        updateSelectInput(session, "proj_colorBy", "Color By", selected = rval$mclass)
+        updateSelectInput(session, "proj_colorBy", "Color by", selected = rval$mclass)
         updateSelectInput(session, "selectCell_goal", selected = "addmeta")
-        updateSelectInput(session, "selectCell_meta_col", "Meta Class", selected = rval$mclass)
+        updateSelectInput(session, "selectCell_meta_col", "Meta class", selected = rval$mclass)
     })
 
 
@@ -1015,9 +1239,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
 
     callModule(pivot_help, "choose_sample_info", title = "Visualize cell subsets:", size = "m", content = list(
         tags$li("'Sample's are cell subsets which enable global and zoom-in exploration of the data."),
-        tags$li("The tool contains sets of 'sample's that's generated by the developer and stored as part of the package."),
-        tags$li("Users can create their own sample by using the cell selection tool, and running a UMAP/PCA with selected cells."),
-        tags$li("You can delete user-created samples with menu below:"),
+        tags$li("The tool contains sets of cell subsets that's generated by the developer and stored as part of the package."),
+        tags$li("Users can create their own cell subset by using the cell selection tool, and running a UMAP/PCA with selected cells."),
+        tags$li("You can delete user-created cell subsets with menu below:"),
         tags$hr(),
         uiOutput(session$ns("choose_sample_del_ui"))
     ))
@@ -1026,7 +1250,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         ns <- session$ns
         sample_names <- names(rval$list)
         fluidRow(
-            column(8, selectInput(ns("del_sample"), "Choose Sample", choices=sample_names)),
+            column(8, selectInput(ns("del_sample"), "Choose cell subset", choices=sample_names)),
             column(4, tags$br(),actionButton(ns("del_sample_btn"), "Delete", class = "btn-danger btn_leftAlign"))
         )
     })
@@ -1036,7 +1260,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         ns <- session$ns
         rval$list[[input$del_sample]] <- NULL
         rval$ustats <- "del"
-        showNotification("Sample deleted.", type="message", duration=10)
+        showNotification("Subset deleted.", type="message", duration=10)
     })
 
 
@@ -1121,6 +1345,10 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             if(!is.null(ev$gene_values)) pvals$gene_values <- ev$gene_values[ev$cells,, drop=F]
             return()
         }
+        if(input$zoom_name %in% c("moreop", "lessop")) {
+            session$sendCustomMessage(type = "showalert", "Name not allowed.")
+            return()
+        }
         if(!is.na(as.numeric(input$zoom_name))) {
             session$sendCustomMessage(type = "showalert", "Number name not allowed.")
             return()
@@ -1155,6 +1383,10 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
 
         if(is.null(input$compdimr_name) || input$compdimr_name == "") {
             session$sendCustomMessage(type = "showalert", "Enter a name first.")
+            return()
+        }
+        if(input$compdimr_name %in% c("moreop", "lessop")) {
+            session$sendCustomMessage(type = "showalert", "Name not allowed.")
             return()
         }
         if(!is.na(as.numeric(input$compdimr_name))) {
@@ -1196,7 +1428,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             rval$ustats <- "add"
         })
         updateSelectInput(session, "input_sample", selected = input$compdimr_name)
-        showNotification("Dimension reduction successfully computed and listed in samples.", type="message", duration=10)
+        showNotification("Dimension reduction successfully computed.", type="message", duration=10)
     })
 
     
@@ -1220,13 +1452,13 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 selected <- NULL
             }
         })
-        selectInput(ns("bp_sample"),"Choose Sample", choices=sample_names, selected = selected)
+        selectInput(ns("bp_sample"),"Choose cell subset", choices=sample_names, selected = selected)
     })
     
     # The follwoing observers control the syncing between explorer sample input and feature plot sample input
     observe({
         req(!is.null(input$input_sample))
-        updateSelectInput(session, "bp_sample", "Choose Sample", selected = input$input_sample)
+        updateSelectInput(session, "bp_sample", "Choose cell subset", selected = input$input_sample)
     })
     
     observe({
@@ -1253,7 +1485,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     
     output$bp_colorBy_ui <- renderUI({
         ns <- session$ns
-        selectInput(ns("bp_colorBy"), "Color By:", choices = bp_colorBy_choices)
+        selectInput(ns("bp_colorBy"), "Color by:", choices = bp_colorBy_choices)
     })
     
     output$bp_include_ui <- renderUI({
@@ -1378,22 +1610,22 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         ct_show <- cell_type_markers
         
-        ct_show$Marker.genes <- lapply(1:nrow(ct_show), function(i) {
-            x <- as.character(ct_show$Marker.genes[i])
-            genes<-trimws(unlist(strsplit(x, ",")), which = "both")
-            #assign("ns1", ns, env=.GlobalEnv)
-            btns <- paste(
-                sapply(genes, function(g){
-                    shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("ct_gene"),  "\", this.id)"))
-                }),
-                collapse = ",&nbsp")
-            return(btns)
-        })
-        #assign("ns1", session$ns, env=.GlobalEnv)
-        ct_show$UMAP <- lapply(1:nrow(ct_show), function(i) {
-            x <- as.character(ct_show$UMAP[i])
-            shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("ct_umap"),  "\", this.id)"))
-        })
+        # ct_show$Marker.genes <- lapply(1:nrow(ct_show), function(i) {
+        #     x <- as.character(ct_show$Marker.genes[i])
+        #     genes<-trimws(unlist(strsplit(x, ",")), which = "both")
+        #     #assign("ns1", ns, env=.GlobalEnv)
+        #     btns <- paste(
+        #         sapply(genes, function(g){
+        #             shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("ct_gene"),  "\", this.id)"))
+        #         }),
+        #         collapse = ",&nbsp")
+        #     return(btns)
+        # })
+        # #assign("ns1", session$ns, env=.GlobalEnv)
+        # ct_show$UMAP <- lapply(1:nrow(ct_show), function(i) {
+        #     x <- as.character(ct_show$UMAP[i])
+        #     shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("ct_umap"),  "\", this.id)"))
+        # })
         names(ct_show) <- c("Cell Type", "UMAP", "Markers", "Notes")
         
         DT::datatable(ct_show, selection = 'none',
@@ -1503,35 +1735,23 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         
         lin_show <- lineage_markers
         
-        lin_show$Markers <- lapply(1:nrow(lin_show), function(i) {
-            x <- as.character(lin_show$Markers[i])
-            if(is.na(x) || x == "") return("")
-            genes<-trimws(unlist(strsplit(x, ",")), which = "both")
-            btns <- paste(
-                sapply(genes, function(g){
-                    if(!g %in% gene_tbl[[1]]) return(g)
-                    shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
-                }),
-                collapse = ",&nbsp")
-            return(btns)
-        })
-        lin_show$New.markers <- lapply(1:nrow(lin_show), function(i) {
-            x <- as.character(lin_show$New.markers[i])
-            if(is.na(x) || x == "") return("")
-            genes<-trimws(unlist(strsplit(x, ",")), which = "both")
-            btns <- paste(
-                sapply(genes, function(g){
-                    if(!g %in% gene_tbl[[1]]) return(g)
-                    shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
-                }),
-                collapse = ",&nbsp")
-            return(btns)
-        })
-        lin_show$UMAP <- lapply(1:nrow(lin_show), function(i) {
-            if(is.na(lin_show$UMAP[i]) || lin_show$UMAP[i] == "") return(NA)
-            x <- as.character(lin_show$UMAP[i])
-            shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_umap"),  "\", this.id)"))
-        })
+        # lin_show$Markers <- lapply(1:nrow(lin_show), function(i) {
+        #     x <- as.character(lin_show$Markers[i])
+        #     if(is.na(x) || x == "") return("")
+        #     genes<-trimws(unlist(strsplit(x, ",")), which = "both")
+        #     btns <- paste(
+        #         sapply(genes, function(g){
+        #             if(!g %in% gene_tbl[[1]]) return(g)
+        #             shinyInput(actionLink, row = i, id = paste0(g,'_', i), label = g, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_gene"),  "\", this.id)"))
+        #         }),
+        #         collapse = ",&nbsp")
+        #     return(btns)
+        # })
+        # lin_show$UMAP <- lapply(1:nrow(lin_show), function(i) {
+        #     if(is.na(lin_show$UMAP[i]) || lin_show$UMAP[i] == "") return(NA)
+        #     x <- as.character(lin_show$UMAP[i])
+        #     shinyInput(actionLink, row = i, id = paste0(x,'_', i), label = x, icon = NULL, onclick = paste0("Shiny.onInputChange(\"", ns("lin_umap"),  "\", this.id)"))
+        # })
         DT::datatable(lin_show, selection = 'none',
                       rownames=F, 
                       editable = F, 
@@ -1589,7 +1809,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         }
         ns <- session$ns
         fluidRow(
-            column(6, selectizeInput(ns("sm_gene"), "Search gene:", choices = gene_tbl, multiple = T, options = list(placeholder = 'No gene selected'))),
+            column(6, selectizeInput(ns("sm_gene"), "Search gene:", choices = gene_tbl, multiple = T, options = list(placeholder = 'No gene selected'), selected = "pha-4")),
             column(6, pickerInput(ns("sm_cellbin"),"Search cell:", choices=cb_choice, options = pickerOptions(actionsBox = TRUE,liveSearch = TRUE, virtualScroll = T, width = '100%', dropdownAlignRight = TRUE, style = "btn-picker", noneSelectedText = "No cell selected"),multiple = T))
             #column(6, selectizeInput(ns("sm_cellbin"), "Search cell:", choices = cb_choice, multiple = T))
         )
@@ -1671,7 +1891,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         ns <- session$ns
         input$hmap_config_reset
         dropdownButton2(inputId=ns("hmap_configure"),
-                        selectInput(ns("hmap_color_pal"), "Heatmap Color", choices=heatmap_palettes),
+                        selectInput(ns("hmap_color_pal"), "Heatmap color", choices=heatmap_palettes),
                         numericInput(ns("hmap_ploth"), "Height (resize window for width)", min=3, value = 5, step=1),
                         checkboxInput(ns("hmap_cluster_row"), "Cluster gene", T),
                         checkboxInput(ns("hmap_cluster_col"), "Cluster cell", T),

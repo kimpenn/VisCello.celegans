@@ -85,13 +85,13 @@ get_numeric_color <- function(palette = NULL) {
     } else if(palette == "rainbow2") {
         c("#CCCCCCCC",rainbow(500)[50:500])
     } else if(palette == "rainbow3") {
-        c("#CCCCCCCC",rainbow(500)[100:500])
+        colorRampPalette(rev(rainbow(10)))(100)[20:100]
     } else if(palette == "grey&red") {
         c("grey", "red")
     } else if(palette == "RdOgYl") {
         c("grey85", "red", "orange", "yellow")
     } else if(palette == "gg_color_hue") {
-        gg_color_hue2(10)
+        gg_color_hue2(10)[2:10]
     } else if(palette == "blue_green_gold"){
         c("grey85", "blue", "green", "#FFD200", "gold")
     } else if(palette == "black_red_gold"){

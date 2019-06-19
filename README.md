@@ -8,7 +8,7 @@ About VisCello.celegans
 
 This is a tool for interactive visualization of C. elegans embryogenesis single cell data published with Packer, J.S., Zhu, Q., et al., 2019.
 
-It has entire C. elegans **built in**, with features specifically designed for showing analysis results in the C. elegans paper, such as co-visualization of umap, lineage annotation and lineage tree.
+It has entire C. elegans embryogensis data **built in**, with features specifically designed for showing analysis results in the C. elegans paper, such as co-visualization of umap, lineage annotation and lineage tree.
 
 For using VisCello for other single cell data visualization, please check https://github.com/qinzhu/VisCello.
 
@@ -19,6 +19,12 @@ Link: https://cello.shinyapps.io/celegans/
 
 Bugs you found with the online tool please post to this github repo.
 
+See also:
+--------------------------------------
+
+* C. elegans L2 data: https://github.com/qinzhu/Celegans.L2.Cello
+
+* C. elegans Tintori et al. data (up to 16 cell stage): https://github.com/qinzhu/Celegans.Tintori.Cello
 
 Installation
 --------------------------------------

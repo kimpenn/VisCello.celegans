@@ -110,7 +110,7 @@ pmeta_attr$is_numeric <- sapply(as.character(pmeta_attr$meta_id), function(x) {
 
 # optional, default_pal of each meta
 pmeta_attr$dpal <- ifelse(pmeta_attr$is_numeric, "viridis", "Set1")
-pmeta_attr$dpal[grepl("time", pmeta_attr$meta_id)] <- "gg_color_hue"
+pmeta_attr$dpal[grepl("time", pmeta_attr$meta_id)] <- "BlueGreenRed"
 pmeta_attr$dscale <- ifelse(pmeta_attr$is_numeric, "log10", NA)
 pmeta_attr$dscale[which(pmeta_attr$meta_id %in% c("Size_Factor", "raw.embryo.time", "embryo.time"))] <- "identity"
 

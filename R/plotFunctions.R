@@ -25,11 +25,6 @@ get_factor_color <-function (labels, pal = "Set1", maxCol = 9, nogrey = T)
     return(colv)
 }
 
-#' @export
-numeric_bin_color_opt <- function() {
-    allowed_pals <- c('gg_color_hue', 'rainbow', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno')
-    return(allowed_pals)
-}
 
 #' @export
 gg_color_hue2 <- function(n) {
@@ -42,6 +37,12 @@ floor_dec <- function(x, level=1) round(x - 5*10^(-level-1), level)
 
 #' @export
 ceiling_dec <- function(x, level=1) round(x + 5*10^(-level-1), level)
+
+#' @export
+numeric_bin_color_opt <- function() {
+    allowed_pals <- c("BlueGreenRed", 'gg_color_hue', 'rainbow', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno')
+    return(allowed_pals)
+}
 
 #' @export
 get_numeric_bin_color <-function (bins, palette = "RdYlBu", maxCol = 9)
@@ -58,12 +59,14 @@ get_numeric_bin_color <-function (bins, palette = "RdYlBu", maxCol = 9)
         colorRampPalette(rev(rainbow(10)))(length(unq))
     } else if(palette == "gg_color_hue") {
         gg_color_hue2(length(unq))
+    } else if(palette == "BlueGreenRed") {
+        colorRampPalette(c("midnightblue", "dodgerblue", "seagreen", "#00C000", "gold2", "darkorange1", "red1"))(length(unq))
     }
 }
 
 #' @export
 numeric_color_opt <- function() {
-    allowed_pals <- c('blue_green_gold', 'black_red_gold', 'black_red', 'red_yellow', 'black_yellow', 'black_yellow_gold' , 'rainbow2', 'rainbow', 'gg_color_hue', 'RdOgYl', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno', 'grey&red','spectral2')
+    allowed_pals <- c("BlueGreenRed", 'blue_green_gold', 'black_red_gold', 'black_red', 'red_yellow', 'black_yellow', 'black_yellow_gold' , 'rainbow2', 'rainbow', 'gg_color_hue', 'RdOgYl', 'RdYlBu', 'RdBu', 'viridis', 'magma', 'plasma', 'inferno', 'grey&red','spectral2')
     return(allowed_pals)
 }
 
@@ -85,13 +88,13 @@ get_numeric_color <- function(palette = NULL) {
     } else if(palette == "rainbow2") {
         c("#CCCCCCCC",rainbow(500)[50:500])
     } else if(palette == "rainbow3") {
-        c("#CCCCCCCC",rainbow(500)[100:500])
+        colorRampPalette(rev(rainbow(10)))(100)[20:100]
     } else if(palette == "grey&red") {
-        c("grey", "red")
+        c("grey", "#b2182b")
     } else if(palette == "RdOgYl") {
         c("grey85", "red", "orange", "yellow")
     } else if(palette == "gg_color_hue") {
-        gg_color_hue2(10)
+        gg_color_hue2(10)[2:10]
     } else if(palette == "blue_green_gold"){
         c("grey85", "blue", "green", "#FFD200", "gold")
     } else if(palette == "black_red_gold"){
@@ -106,6 +109,8 @@ get_numeric_color <- function(palette = NULL) {
         c("grey85",  "black", "yellow", "gold")
     } else if(palette == "spectral2") {
         c("#CCCCCCCC",rev(get_factor_color(1:11,"Spectral")))
+    } else if(palette == "BlueGreenRed") {
+        colorRampPalette(c("midnightblue", "dodgerblue", "seagreen", "#00C000", "gold2", "darkorange1", "red1"))(10)
     }
 }
 
@@ -343,7 +348,8 @@ plotProj <- function (proj, dim_col = c(1,2), group.by=NULL, pal=NULL, size = 1,
         proj[[group.by]][proj[[group.by]] < limits[1]] <- limits[1]
         proj[[group.by]][proj[[group.by]] > limits[2]] <- limits[2]
     }
-    idx_region <- which(proj[[group.by]] != "unannotated" & !is.na(proj[[group.by]]))
+    is_layer2 <- proj[[group.by]] == "unannotated" | is.na(proj[[group.by]]) | proj[[group.by]] == 0
+    idx_region <- which(!is_layer2)
     pp<-ggplot(proj, aes_string(color=group.by)) +
         geom_point(aes_string(plot_col[1],plot_col[2], alpha="alpha"), size=size,color=na.col,show.legend=FALSE, stroke=0) +
         geom_point(data=proj[idx_region,],aes_string(plot_col[1],plot_col[2], alpha="alpha"), size=size, stroke = 0) +

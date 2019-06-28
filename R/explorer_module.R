@@ -180,7 +180,9 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                    DT::dataTableOutput(ns("g_meta_table"))
             ), 
             column(8, 
-                   uiOutput(ns("image_graph_plot_ui"))
+                   uiOutput(ns("image_graph_plot_ui")),
+                   tags$br(),
+                   tags$b("Lineage tree colored by expression of gene X as determined by imaging of a fluorescent reporter.")
             )
         )
         
@@ -211,12 +213,13 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     value = "lui",
                     tags$b("Lineage Markers"),
                     tags$br(),
-                    tags$li("Table below shows markers used for annotation."),
+                    tags$b("Table below shows markers used for annotation. NOT new markers identified from the single cell data."),
                     lui
                 ),
                 tabPanel(
                     value = "mui",
                     tags$b("Marker Imaging"),
+                    tags$br(),
                     mui
                 )
             )
@@ -242,7 +245,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     value = "cui",
                     tags$b("Cell Type Markers"),
                     tags$br(),
-                    tags$li("Table below shows markers used for annotation."),
+                    tags$b("Table below shows markers used for annotation. NOT new markers identified from the single cell data."),
                     cui
                 )
             )
@@ -1069,7 +1072,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 column(12, selectInput(ns("selectCell_goal"), paste("Operation on", length(selected_samples), "cells"), choices = list(
                     "Zoom in to selected cells" = "zoom", 
                     "Name selected cell subset" = "addmeta",
-                    "Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
+                    #"Compute new PCA/UMAP with selected cells" = "compdimr", # Don't allow in online version
                     "Download expression data (ExpressionSet format) of selected cells" = "downcell",
                     "Download meta data of selected cells" = "downmeta"
                 )))
@@ -1365,71 +1368,71 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
     })
 
     # Don't put in online version
-    observeEvent(input$compdimr_run, {
-        req(ev$cells)
-
-        error_I <- 0
-        tryCatch({
-            reticulate::import("umap")
-        }, warning = function(w) {
-        }, error = function(e) {
-            error_I <<-1
-        })
-
-        if(error_I) {
-            session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
-            return()
-        }
-
-        if(is.null(input$compdimr_name) || input$compdimr_name == "") {
-            session$sendCustomMessage(type = "showalert", "Enter a name first.")
-            return()
-        }
-        if(input$compdimr_name %in% c("moreop", "lessop")) {
-            session$sendCustomMessage(type = "showalert", "Name not allowed.")
-            return()
-        }
-        if(!is.na(as.numeric(input$compdimr_name))) {
-            session$sendCustomMessage(type = "showalert", "Number name not allowed.")
-            return()
-        }
-        if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
-            session$sendCustomMessage(type = "showalert", "Name already taken.")
-            return()
-        }
-        if(input$compdimr_batch) {
-            resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
-        } else {
-            resform <- NULL
-        }
-
-
-
-        withProgress(message = 'Processing...', {
-            incProgress(1/2)
-            set.seed(2018)
-            #assign("ev1cells", ev$cells, env=.GlobalEnv)
-            fd <- fData(eset[,ev$cells])[, c(1,2)]
-            colnames(fd) <- c("id", "gene_short_name")
-            cds_oidx <- newCellDataSet(cellData = exprs(eset[,ev$cells]), phenoData = new("AnnotatedDataFrame", data = pData(eset[,ev$cells])), featureData = new("AnnotatedDataFrame", data = fd))
-            pData(cds_oidx) <- pData(eset[,ev$cells])
-            cds_oidx <- filter_cds(cds=cds_oidx, min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
-            #assign("cds1", cds_oidx, env=.GlobalEnv)
-            irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
-            pca_proj <- as.data.frame(irlba_res$x)
-            rownames(pca_proj) <- colnames(cds_oidx)
-            newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
-            newvis@proj[["PCA"]] <- pca_proj
-            if(grepl("UMAP", input$compdimr_type)) {
-                n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
-                newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
-            }
-            rval$list[[input$compdimr_name]] <- newvis
-            rval$ustats <- "add"
-        })
-        updateSelectInput(session, "input_sample", selected = input$compdimr_name)
-        showNotification("Dimension reduction successfully computed.", type="message", duration=10)
-    })
+    # observeEvent(input$compdimr_run, {
+    #     req(ev$cells)
+    # 
+    #     error_I <- 0
+    #     tryCatch({
+    #         reticulate::import("umap")
+    #     }, warning = function(w) {
+    #     }, error = function(e) {
+    #         error_I <<-1
+    #     })
+    # 
+    #     if(error_I) {
+    #         session$sendCustomMessage(type = "showalert", "UMAP not installed, please install umap to python environment first.")
+    #         return()
+    #     }
+    # 
+    #     if(is.null(input$compdimr_name) || input$compdimr_name == "") {
+    #         session$sendCustomMessage(type = "showalert", "Enter a name first.")
+    #         return()
+    #     }
+    #     if(input$compdimr_name %in% c("moreop", "lessop")) {
+    #         session$sendCustomMessage(type = "showalert", "Name not allowed.")
+    #         return()
+    #     }
+    #     if(!is.na(as.numeric(input$compdimr_name))) {
+    #         session$sendCustomMessage(type = "showalert", "Number name not allowed.")
+    #         return()
+    #     }
+    #     if(input$compdimr_name %in% c(names(sclist$clist), names(sclist$elist))) {
+    #         session$sendCustomMessage(type = "showalert", "Name already taken.")
+    #         return()
+    #     }
+    #     if(input$compdimr_batch) {
+    #         resform <- "~as.factor(batch) + ~as.factor(batch) * raw.embryo.time"
+    #     } else {
+    #         resform <- NULL
+    #     }
+    # 
+    # 
+    # 
+    #     withProgress(message = 'Processing...', {
+    #         incProgress(1/2)
+    #         set.seed(2018)
+    #         #assign("ev1cells", ev$cells, env=.GlobalEnv)
+    #         fd <- fData(eset[,ev$cells])[, c(1,2)]
+    #         colnames(fd) <- c("id", "gene_short_name")
+    #         cds_oidx <- newCellDataSet(cellData = exprs(eset[,ev$cells]), phenoData = new("AnnotatedDataFrame", data = pData(eset[,ev$cells])), featureData = new("AnnotatedDataFrame", data = fd))
+    #         pData(cds_oidx) <- pData(eset[,ev$cells])
+    #         cds_oidx <- filter_cds(cds=cds_oidx, min_detect=input$compdimr_mine, min_numc_expressed = input$compdimr_minc, min_disp_ratio=input$compdimr_disp)
+    #         #assign("cds1", cds_oidx, env=.GlobalEnv)
+    #         irlba_res <- compute_pca_cds(cds_oidx, num_dim =input$compdimr_numpc, scvis=NULL, use_order_gene = T, residualModelFormulaStr = resform, return_type="irlba")
+    #         pca_proj <- as.data.frame(irlba_res$x)
+    #         rownames(pca_proj) <- colnames(cds_oidx)
+    #         newvis <- new("Cello", idx = match(ev$cells, colnames(eset)))
+    #         newvis@proj[["PCA"]] <- pca_proj
+    #         if(grepl("UMAP", input$compdimr_type)) {
+    #             n_component = ifelse(grepl("2D", input$compdimr_type), 2, 3)
+    #             newvis@proj[[paste0(input$compdimr_type, " [", input$compdimr_numpc, "PC]")]]<-compute_umap_pca(pca_proj, num_dim = input$compdimr_numpc, n_component=n_component)
+    #         }
+    #         rval$list[[input$compdimr_name]] <- newvis
+    #         rval$ustats <- "add"
+    #     })
+    #     updateSelectInput(session, "input_sample", selected = input$compdimr_name)
+    #     showNotification("Dimension reduction successfully computed.", type="message", duration=10)
+    # })
 
     
     ### Feature Plot ###

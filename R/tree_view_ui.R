@@ -24,6 +24,7 @@ tree_ui <- function(id) {
                 column(3, downloadButton(ns("download_tree_plot"), "Download tree", class = "btn-primary btn_rightAlign"))
             )
         ),
+        tags$b("Lineage tree can be colored by expression of gene X as determined from single cell data (choose gene from 'Color by' drop down). "),
         fluidRow(
             column(12, uiOutput(ns("tree_view_ui")))
         )
@@ -90,10 +91,11 @@ tree_server <- function(input, output, session){
                 theme(legend.position="top")
             if(cur_root == "P0") {
                 p_final <- p_final + theme_tree2(legend.position = "top") + 
-                    scale_x_continuous(sec.axis = dup_axis(), lim = c(0,input$max_time + 100))
+                    scale_x_continuous(sec.axis = dup_axis())
+                    #scale_x_continuous(sec.axis = dup_axis(), lim = c(0,input$max_time + 100))
             } else { # time does not match axis so for now drop them
-                p_final <- p_final + xlab(NULL) + ylab(NULL)  + 
-                    scale_x_continuous(lim = c(0,input$max_time + 100))
+                p_final <- p_final + xlab(NULL) + ylab(NULL)  #+ 
+                    #scale_x_continuous(lim = c(0,input$max_time + 100))
             }
             return(p_final)
         } else {

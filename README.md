@@ -12,6 +12,10 @@ It has entire C. elegans embryogensis data **built in**, with features specifica
 
 For using VisCello for other single cell data visualization, please check https://github.com/qinzhu/VisCello.
 
+Screenshot:
+
+![](inst/app/www/screenshot.png?raw=true "VisCello screenshot")
+
 Online version
 ------------------------
 

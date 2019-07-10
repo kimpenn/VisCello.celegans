@@ -14,7 +14,7 @@ For using VisCello for other single cell data visualization, please check https:
 
 Screenshot:
 
-![](inst/app/www/screenshot.png?raw=true "VisCello screenshot")
+[![Alt text](inst/app/www/screenshot.png?raw=true "VisCello screenshot")](https://cello.shinyapps.io/celegans/)
 
 Online version
 ------------------------

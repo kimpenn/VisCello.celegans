@@ -61,6 +61,9 @@ Please follow protocol listed below to install:
     ``` r
     install.packages("devtools") 
     devtools::install_local("VisCello.celegans")
+    # Temporarily needed, install a version of "tidytree" package to avoid a bug in newer version
+    packageurl <- "https://cran.r-project.org/src/contrib/Archive/tidytree/tidytree_0.2.4.tar.gz"
+    install.packages(packageurl, repos=NULL, type="source")
     ```
 
     Now VisCello is ready to go! To launch Viscello, in R:

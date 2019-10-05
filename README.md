@@ -93,10 +93,11 @@ FAQ
 
 * Q: Got installation error when running devtools::install_local: `package 'AnnotationDbi' was built under R version xxx, lazy loading failed for package xx`.
 
-  A: Run following code in R and then run `devtools::install_local("VisCello.celegans")`.
+  A: Run following code in R:
   
     ```
     BiocManager::install(c("celegans.db", "GO.db", "DO.db"))
+    install.packages("VisCello.celegans", repos = NULL, type = "source")
     ```
   
 

@@ -6,7 +6,7 @@ Author: Qin Zhu, Jonathan Packer, Junyhong Kim, John I. Murray, Robert H. Waters
 Maintainer: Qin Zhu <zhuqin@pennmedicine.upenn.edu>
 Description: A visualization tool for C.elegans scRNA-Seq data. Also applicable to other scRNA-Seq/scATAC-Seq data as a hosting, exploration and analysis platfrom (see VisCello). 
 Depends:
-    R (>= 3.1.0),
+    R (>= 3.5.0),
     shiny,
     shinyBS,
     shinycssloaders,

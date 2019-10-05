@@ -75,7 +75,7 @@ Please follow protocol listed below to install:
 FAQ
 -------------------------
 
-* Q: I see error in R complaining: "Error in readRDS("data/eset.rds"): unknown input format", what should I do?
+* Q: Got installation error: `Error in readRDS("data/eset.rds"): unknown input format`
     
     A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. Example code using brew or conda:
     
@@ -91,6 +91,15 @@ FAQ
     git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
     ```
 
+* Q: Got installation error when running devtools::install_local: `package 'AnnotationDbi' was built under R version xxx, lazy loading failed for package xx`.
+
+  A: Run following code in R and then run `devtools::install_local("VisCello.celegans")`.
+  
+    ```
+    BiocManager::install(c("celegans.db", "GO.db", "DO.db"))
+    ```
+  
+
 * Q: Can I use VisCello to explore my own data?
     
   A: Yes. Please use the general version: https://github.com/qinzhu/VisCello and kindly cite VisCello if you use it for publication.
@@ -102,3 +111,4 @@ Cite VisCello
 Q. Zhu, J. I. Murray, K. Tan, J. Kim, qinzhu/VisCello: VisCello v1.0.0 (2019; https://zenodo.org/record/3262313).
 
 Packer, J.S., Zhu, Q., Huynh, C., Sivaramakrishnan, P., Preston, E., Dueck, H., Stefanik, D., Tan, K., Trapnell, C., Kim, J. and Waterston, R.H., 2019. A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell resolution. BioRxiv, p.565549.
+

@@ -60,7 +60,7 @@ Please follow protocol listed below to install:
 
     ``` r
     install.packages("devtools") 
-    devtools::install_local("VisCello.celegans")
+    devtools::install_local("VisCello.celegans", force=T)
     # Temporarily needed, install a version of "tidytree" package to avoid a bug in newer version
     packageurl <- "https://cran.r-project.org/src/contrib/Archive/tidytree/tidytree_0.2.4.tar.gz"
     install.packages(packageurl, repos=NULL, type="source")

@@ -85,7 +85,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                     column(3, uiOutput(ns("bp_sample_ui"))),
                     column(3, selectizeInput(ns("bp_gene"), "Search gene:", choices = c("No gene selected"="No gene selected", gene_tbl))),
                     column(3, uiOutput(ns("bp_colorBy_ui"))),
-                    column(3, selectInput(ns("bp_log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Raw count" = "raw")))
+                    column(3, selectInput(ns("bp_log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Molecule (UMI) count" = "raw")))
                 ),
                 uiOutput(ns("bp_include_ui")),
                 fluidRow(
@@ -312,7 +312,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
         req(input$proj_colorBy, !input$proj_colorBy %in% c("moreop", "lessop"))
         
         if(input$proj_colorBy == 'gene.expr') {
-            selectInput(ns("log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Raw count" = "raw"))
+            selectInput(ns("log_transform_gene"), "Data scale", choices=list("Log2 normalized count"="log2", "Molecule (UMI) count" = "raw"))
         } else if(!input$proj_colorBy %in% ev$factor_cols){
             if(input$proj_colorBy %in% pmeta_attr$meta_id && !is.null(pmeta_attr$dscale)) {
                 default_scale <- pmeta_attr$dscale[which(pmeta_attr$meta_id==input$proj_colorBy)]
@@ -795,7 +795,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                                           na.col = "lightgrey",
                                           legend_name = ifelse(pvals$log_transform_gene == "log2", 
                                                                paste0(colnames(pvals$gene_values), " expression\n(log normalized)"), 
-                                                               paste0(colnames(pvals$gene_values), " expression\n(raw count)")))
+                                                               paste0(colnames(pvals$gene_values), " expression\n(UMI count)")))
         }
     })
 
@@ -1588,7 +1588,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                      text.size = input$bp_text_size, pointSize = input$bp_marker_size, legend = ifelse(input$bp_legend_type == "l", T, F), 
                      breaks = unique(cur_group), axis.text.angle = input$bp_xaxis_angle, 
                      order.by = ifelse(grepl("time",input$bp_colorBy, ignore.case = T), "none", "mean"), 
-                     ylab.label = ifelse(input$bp_log_transform_gene == "log2", "Expression (log2 normalized)", "Expression (raw count)")
+                     ylab.label = ifelse(input$bp_log_transform_gene == "log2", "Expression (log2 normalized)", "Expression (UMI count)")
         )
     })
     

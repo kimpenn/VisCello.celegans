@@ -89,7 +89,7 @@ make_tree_dimr <- function(in.plot = NULL, proj = NULL, left_tree = NULL, right_
         d2 <- right_tree$data
         d2$x <- scales::rescale(-d2$x, to = right_x_range)
         d2$branch <-  scales::rescale(-d2$branch, to = right_x_range)
-        d2$y <- scales::rescale(d2$y, to = proj_y_range)
+        d2$y <- scales::rescale(d2$y, to = rev(proj_y_range))
         pp <- pp+
             geom_tree(data=d2, size = edge.size)
         if(!is.null(label_function)) {

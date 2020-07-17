@@ -146,7 +146,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             wellPanel(
                 uiOutput(ns("sm_option")),
                 fluidRow(
-                    column(9, tags$p("Hint: Select one or more genes to visualize its summarized expression.")),
+                    column(9, tags$p("Hint: Select one or more genes to visualize its summarized expression. To view expression of all genes for a specific cell, select the cell and deselect all genes.")),
                     column(3, actionLink(ns("sm_reset"), "Clear selected", class = "btn_rightAlign"))
                 )
             ),
@@ -1826,18 +1826,20 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
             cur_tbl <- lin_tbl
             sm$col <- "lineage"
         }
+        
+        if(is.null(input$sm_cellbin) || length(input$sm_cellbin) == 0) {
+            cbins <- levels(cur_tbl[[sm$col]])
+        } else {
+            cbins <- input$sm_cellbin
+        }
+        
         if(length(input$sm_gene)) {
             tbl <- cur_tbl %>% dplyr::filter(gene %in% input$sm_gene)
-            if(is.null(input$sm_cellbin) || length(input$sm_cellbin) == 0) {
-                cbins <- levels(cur_tbl[[sm$col]])
-            } else {
-                cbins <- input$sm_cellbin
-            }
             sm$tbl <- tbl[tbl[[sm$col]] %in% cbins, ]
             sm$gene <- input$sm_gene
         } else {
-            sm$tbl <- NULL
-            sm$gene <- NULL
+            sm$tbl <- cur_tbl[cur_tbl[[sm$col]] %in% cbins,]
+            sm$gene <- gene_tbl[[1]]
         }
     })
     

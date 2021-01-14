@@ -49,15 +49,20 @@ Please follow protocol listed below to install:
     # For first time installer, if prompted "Update all/some/none? [a/s/n]", type a and press return.
     ```
 
-1. In terminal copy paste followng line by line with return:
+1. In terminal run command below:
 
     ```
     git lfs clone https://github.com/qinzhu/VisCello.celegans.git
+    ```
+    
+    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
+    
+
+2. Now launch R:
+    ```
     R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
     ```
-
-2. Now inside R and do the following (line by line):
-
+    Run code below inside R:
     ``` r
     install.packages("devtools") 
     devtools::install_local("VisCello.celegans", force=T)
@@ -87,8 +92,6 @@ FAQ
     git lfs install
     git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
     ```
-    
-    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
     
     ```
     conda install -c conda-forge git-lfs

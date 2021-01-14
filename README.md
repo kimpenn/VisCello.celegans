@@ -88,6 +88,8 @@ FAQ
     git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
     ```
     
+    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
+    
     ```
     conda install -c conda-forge git-lfs
     git lfs install

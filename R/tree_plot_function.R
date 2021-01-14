@@ -41,7 +41,7 @@ make_lineage_ggtree <- function(in_tree = NULL, root = "P0", time.cut = 300,
 
 
 #' @export
-make_tree_dimr <- function(in.plot = NULL, proj = NULL, left_tree = NULL, right_tree = NULL, top_tree = NULL, 
+make_tree_dimr <- function(proj = NULL, left_tree = NULL, right_tree = NULL, top_tree = NULL, 
                         colorBy = "combine_lineage", shared.col = "combine_lineage",
                         label.time.cut = 80, label.type = "label",
                            pt.size = 1, edge.size = 1, label.size = 3,
@@ -67,11 +67,8 @@ make_tree_dimr <- function(in.plot = NULL, proj = NULL, left_tree = NULL, right_
     top_y_range <- c(proj_y_range[2] + lr_y_adjust, proj_y_range[2] + lr_y_adjust+ tp_y_length)
     
     pp <- left_tree 
-    if(!is.null(in.plot)) {
-        pp <- in.plot
-    } else {
-        pp <- plotProj(proj, group.by = colorBy, pal = tree.color, legend = F) + theme_void()
-    }
+    pp <- plotProj(proj, group.by = colorBy, pal = tree.color, legend = F) + theme_void()
+    
     if(!is.null(left_tree)) {
         d1 <- left_tree$data
         d1$branch <-  scales::rescale(d1$branch, to = left_x_range)
@@ -128,22 +125,25 @@ make_tree_dimr <- function(in.plot = NULL, proj = NULL, left_tree = NULL, right_
         proj <- proj[, c("x","y", shared.col)]
         proj_center <- proj %>% group_by_at(shared.col) %>% summarize_at(c("x", "y"), median)
         use_col <- c("x","y",shared.col)
-        df_bind <- list()
-        df_bind[[1]]<-d1[d1$isTip,use_col]
-        df_bind[[1]]$source <- "left"
-        if(link.x.shift.absolute) {
-            df_bind[[1]]$x <- link.x.shift
-        } else {
-            df_bind[[1]]$x <- df_bind[[1]]$x + link.x.shift
+        df_bind <- list(NULL,NULL,NULL)
+        
+        if(!is.null(left_tree)) {
+            df_bind[[1]]<-d1[,use_col]
+            df_bind[[1]]$source <- "left"
+            if(link.x.shift.absolute) {
+                df_bind[[1]]$x <- link.x.shift
+            } else {
+                df_bind[[1]]$x <- df_bind[[1]]$x + link.x.shift
+            }
         }
         
         if(!is.null(right_tree)) {
-            df_bind[[2]]<-d2[d2$isTip,use_col]
+            df_bind[[2]]<-d2[,use_col]
             df_bind[[2]]$source <- "right"
             df_bind[[2]]$x <- df_bind[[2]]$x - link.x.shift
         }
         if(!is.null(top_tree)) {
-            df_bind[[3]]<-d3[d3$isTip,use_col]
+            df_bind[[3]]<-d3[,use_col]
             df_bind[[3]]$source <- "top"
         }
         dd_tree <- bind_rows(df_bind) 

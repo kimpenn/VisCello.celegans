@@ -848,8 +848,7 @@ explorer_server <- function(input, output, session, sclist, useid, cmeta = NULL,
                 top_tree <- make_lineage_ggtree(in_tree = cur_tree, root = input$top_tree_root, time.cut = input$tree_time_cut, color.annot = colorBy, branch.length='lifetime')
             } else top_tree <- NULL
             if(is.null(left_tree) && is.null(right_tree) && is.null(top_tree)) return(p + theme_void())
-
-            res <- make_tree_dimr(in.plot=p, proj=pvals$proj, left_tree = left_tree, right_tree = right_tree, top_tree = top_tree, 
+            res <- make_tree_dimr(proj=pvals$proj, left_tree = left_tree, right_tree = right_tree, top_tree = top_tree, 
                                   colorBy = colorBy, tree.color = pvals$factor_color, 
                                   label.time.cut = input$tree_label_cut, label.size = input$tree_label_size, 
                                   edge.size = input$tree_edge_size, tip.size = input$tree_tip_size,

@@ -1,4 +1,6 @@
 
+
+
 #' @export
 get_tree_color <- function(ctree, pal) {
     tcolor <- colorRampPalette(pal)(length(as_tibble(ctree)$label)) ## (n)

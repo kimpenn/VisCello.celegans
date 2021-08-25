@@ -80,15 +80,30 @@ tree_server <- function(input, output, session){
         if(input$tree_style != "arc-bar") {
             p1<-ggtree(tree_td, branch.length='lifetime', aes_string(color = cby), size = 2, ladderize = F, layout = input$tree_style)
             p1 <- lineage_tree_flip(p1, silence = T)
-            assign("p1", p1, env = .GlobalEnv)
+            # assign("tree_td", tree_td, env = .GlobalEnv)
+            # assign("p1", p1, env = .GlobalEnv)
+            # assign("tBy", tBy, env = .GlobalEnv)
+            # assign("cby", cby, env = .GlobalEnv)
+            # assign("input", reactiveValuesToList(input), env = .GlobalEnv)
+            # assign("cby_name", cby_name, env = .GlobalEnv)
+            # print("x0")
+            # Code to be fixed and throws "Error in match.call: ... used in a situation where it does not exist" error in shiny.
+            geom_nodelabx <- function (mapping = NULL, nudge_x = 0, nudge_y = 0, geom = "text", 
+                      hjust = 0, ...) 
+            {
+                geom_tiplab(mapping, offset = nudge_x, nudge_y = nudge_y, 
+                            geom = geom, hjust = hjust, ...)
+            }
             p_final <- p1 + 
-                geom_tiplab(aes_string(label = tBy), size = 3,color = "black", align = F) + 
+                geom_nodelabx(aes_string(label = tBy), size = 3,color = "black", align = F) + 
                 geom_text(aes(label=label), data = p1$data[p1$data$br_time < 80,], size = 5, angle = 90,color = "black") + 
                 scale_color_gradientn(colours = get_numeric_color(input$lin_pal), na.value=input$na_color) + 
                 labs(color = cby_name)+
                 scale_y_continuous(expand = c(0, 3))+
                 theme(axis.text=element_text(size=12))  +
                 theme(legend.position="top")
+            #assign("p_final", p_final, env = .GlobalEnv)
+            #print("x1")
             if(cur_root == "P0") {
                 p_final <- p_final + theme_tree2(legend.position = "top") + 
                     scale_x_continuous(sec.axis = dup_axis())

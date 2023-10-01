@@ -33,33 +33,13 @@ See also:
 Installation
 --------------------------------------
 
-Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. Git LFS has a monthly download limit, if you cannot download the package from github, you can get it from Zenodo: https://zenodo.org/record/8397398 and proceed to step 2.
-
 Please follow protocol listed below to install:
 
-0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
+1. Get the package by downloading from Zenodo: https://zenodo.org/record/8397398. Unzip it (keep the folder structure so that the unzipped folder name is VisCello.celegans, and inside the folder you have folders including inst/, man/, R/)
 
-    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew or conda).
-    
-    Any system: Install R (>3.5.0 required) and latest bioconductor (code below, copy and paste inside R):
-    
-    ```
-    if (!requireNamespace("BiocManager"))
-    install.packages("BiocManager")
-    BiocManager::install()
-    # For first time installer, if prompted "Update all/some/none? [a/s/n]", type a and press return.
-    ```
-
-1. In terminal run command below:
-
-    ```
-    git lfs clone https://github.com/qinzhu/VisCello.celegans.git
-    ```
-    
-    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
-    
 
 2. Now launch R:
+
     ```
     R   #Launch R, Windows user open R/Rstudio, setwd() to parent folder of VisCello. 
     ```
@@ -79,10 +59,35 @@ Please follow protocol listed below to install:
     cello()
     ```
   
-  If you have also installed VisCello, please make sure you do not load VisCello in the same session, as some functions are re-used and may lead to conflicts.
 
 FAQ
 -------------------------
+* Q: Can I install the package from github directly?
+
+    A: You need git lfs to download it from github, but we do not recommend this way of installation due to monthly bandwidth limit. Instructions below:
+
+Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
+
+    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew or conda).
+    
+    Any system: Install R (>3.5.0 required) and latest bioconductor (code below, copy and paste inside R):
+    
+    ```
+    if (!requireNamespace("BiocManager"))
+    install.packages("BiocManager")
+    BiocManager::install()
+    # For first time installer, if prompted "Update all/some/none? [a/s/n]", type a and press return.
+    ```
+
+In terminal run command below:
+
+    ```
+    git lfs clone https://github.com/qinzhu/VisCello.celegans.git
+    ```
+    
+    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
+    
+
 
 * Q: Got installation error: `Error in readRDS("data/eset.rds"): unknown input format`
     

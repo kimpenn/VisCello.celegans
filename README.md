@@ -33,7 +33,8 @@ See also:
 Installation
 --------------------------------------
 
-Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. 
+Due to large data file currently being hosted on Git LFS, you cannot use devtools::install_github to install this package. Git LFS has a monthly download limit, if you cannot download the package from github, you can get it from Zenodo: https://zenodo.org/record/8397398 and proceed to step 2.
+
 Please follow protocol listed below to install:
 
 0. Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 

@@ -3,4 +3,5 @@
 .RData
 .Ruserdata
 data-raw/*
+inst/app/data/*
 .DS_Store

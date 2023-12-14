@@ -35,7 +35,7 @@ Installation
 
 Please follow protocol listed below to install:
 
-1. Get the package by downloading from Zenodo: https://zenodo.org/record/8397398. Unzip it (keep the folder structure so that the unzipped folder name is VisCello.celegans, and inside the folder you have folders including inst/, man/, R/)
+1. Get the package by downloading from Zenodo: https://zenodo.org/record/8397398 (NOTE we no longer provide full package via github). Unzip it (keep the folder structure so that the unzipped folder name is VisCello.celegans, and inside the folder you have folders including inst/, man/, R/).
 
 
 2. Now launch R:
@@ -62,48 +62,6 @@ Please follow protocol listed below to install:
 
 FAQ
 -------------------------
-* Q: Can I install the package from github directly?
-
-    A: You need git lfs to download it from github, but we do not recommend this way of installation due to monthly bandwidth limit. Instructions below:
-
-Windows and Linux: install git from https://git-scm.com/book/en/v2/Getting-Started-Installing-Git. 
-
-    MACOS and Linux: Install git-lfs from https://git-lfs.github.com/ (See FAQ for example installation using brew or conda).
-    
-    Any system: Install R (>3.5.0 required) and latest bioconductor (code below, copy and paste inside R):
-    
-    ```
-    if (!requireNamespace("BiocManager"))
-    install.packages("BiocManager")
-    BiocManager::install()
-    # For first time installer, if prompted "Update all/some/none? [a/s/n]", type a and press return.
-    ```
-
-In terminal run command below:
-
-    ```
-    git lfs clone https://github.com/qinzhu/VisCello.celegans.git
-    ```
-    
-    You can ignore warning messages. After running the command, you should see the entire github folder downloaded and the size of 'VisCello.celegans/inst/app/data/eset.rds' is about 402MB. If you get anything below 1MB you may have not correctly installed git lfs.
-    
-
-
-* Q: Got installation error: `Error in readRDS("data/eset.rds"): unknown input format`
-    
-    A: Install git-lfs from Install git-lfs from https://git-lfs.github.com/ and then go to step 1. Example code using brew or conda:
-    
-    ```
-    brew install git-lfs
-    git lfs install
-    git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
-    ```
-    
-    ```
-    conda install -c conda-forge git-lfs
-    git lfs install
-    git-lfs clone https://github.com/qinzhu/VisCello.celegans.git
-    ```
 
 * Q: Got installation error when running devtools::install_local: `package 'AnnotationDbi' was built under R version xxx, lazy loading failed for package xx`.
 

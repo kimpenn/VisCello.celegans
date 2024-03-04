@@ -46,6 +46,7 @@ Please follow protocol listed below to install:
     Run code below inside R:
     ``` r
     install.packages("devtools") 
+    devtools::install_github("cysouw/qlcMatrix") # Due to recent removal of this package from CRAN
     devtools::install_local("VisCello.celegans", force=T)
     # Temporarily needed, install a version of "tidytree" package to avoid a bug in newer version
     packageurl <- "https://cran.r-project.org/src/contrib/Archive/tidytree/tidytree_0.2.4.tar.gz"
